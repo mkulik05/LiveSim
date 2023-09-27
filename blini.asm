@@ -97,25 +97,7 @@ proc fillField
       cmp eax, [AgentsSize]
       jg addAgentCell 
       
-      ; creating new vector with bigger capacity
-      shl eax, 1 ; new capacity
-      mul dword[AgentRecSize]
-
-      mov ebx, [AgentsTotalAllocSize] ; backing it up 
-      mov [AgentsTotalAllocSize], eax
-
-      mov esi, [AgentsAddr] ; backing it up 
-      mov edx, [AgentsHeapHandle] ; it too
-      stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
-
- 
-      
-      mov ecx, [AgentsSize]
-      rep movsd             ; copying prev agents
-      pop esi
-      pop ecx
-
-      invoke HeapFree, edx, 0, ebx
+      stdcall ReallocAgents
       
 
       addAgentCell: 
@@ -156,6 +138,27 @@ proc fillField
   ret  
 endp
 
+proc ReallocAgents
+  mov eax, [AgentsCapacity]
+  ; creating new vector with bigger capacity
+  shl eax, 1 ; new capacity
+  mul dword[AgentRecSize]
+
+  mov ebx, [AgentsTotalAllocSize] ; backing it up 
+  mov [AgentsTotalAllocSize], eax
+
+  mov esi, [AgentsAddr] ; backing it up 
+  mov edx, [AgentsHeapHandle] ; it too
+  stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
+  
+  mov ecx, [AgentsSize]
+  rep movsd             ; copying prev agents
+  pop esi
+  pop ecx
+
+  invoke HeapFree, edx, 0, ebx
+  ret
+endp
 
 ; eax - return new rand value up to maxVal
 proc RandGet, maxVal
