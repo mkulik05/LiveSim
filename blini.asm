@@ -11,6 +11,9 @@ section '.data' data readable writeable
 
   ; agents vec data
   AgentRecSize dd 20
+  AgentRecSizeIn = 20
+  TasksAmount dd 6
+  AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
   AgentsTotalAllocSize dd ?
   AgentsHeapHandle dd ?
   AgentsCapacity dd ?
@@ -28,20 +31,16 @@ proc start
   stdcall getFieldSize, [fieldSize] ; into eax
 
   mov [FieldTotalAllocSize], eax
-  stdcall allocMem, eax, FieldTotalAllocSize, FieldHeapHandle, fieldAddr
+  stdcall allocMem, eax, FieldHeapHandle, fieldAddr
 
-  stdcall fillField ; eax will store amount of agents
-
-  mov [AgentsSize], eax
-  add eax, [fieldSize] ; adding some reserved space for new agents
+  mov [AgentsSize], 0
+  mov eax, [fieldSize]
   mov [AgentsCapacity], eax
   mul [AgentRecSize] ; get agents buffer size
   mov [AgentsTotalAllocSize], eax
   stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
 
-  mov [FieldTotalAllocSize], eax
-
-  stdcall genAgents, eax
+  stdcall fillField
 
   ; cleaning up
   invoke HeapFree, [FieldHeapHandle], 0, [FieldTotalAllocSize]
@@ -50,13 +49,6 @@ proc start
   ret
 endp
  
-proc genAgents, agentsN
-  mov ecx, [agentsN]
-
-
-  ret
-endp
-
  ; eax - return generated amount of agents
 proc fillField
   ; get emount of cells to generate
@@ -64,7 +56,7 @@ proc fillField
   mul [fieldSize]
 
   xor ebx, ebx
-  xor edi, edi
+  xor esi, esi
   mov ecx, eax
   loopStart:
     rdrand ax
@@ -89,30 +81,91 @@ proc fillField
       mov dword[fieldAddr + ebx], eax
       jmp @F
     Agent:
+
+      ; filling cell in game field
       mov eax, 0
       ; bts eax, 15
       bts eax, 14
       add eax, edi
       ; agent cell - 01_FF_FF_FF, FF_FF_FF - agent index
       mov dword[fieldAddr + ebx], eax
-      inc edi
+
+      push ecx
+      push esi
+      ; filling agents vector
+      mov eax, [AgentsCapacity]
+      cmp eax, [AgentsSize]
+      jg addAgentCell 
+      
+      ; creating new vector with bigger capacity
+      shl eax, 1 ; new capacity
+      mul dword[AgentRecSize]
+
+      mov ebx, [AgentsTotalAllocSize] ; backing it up 
+      mov [AgentsTotalAllocSize], eax
+
+      mov esi, [AgentsAddr] ; backing it up 
+      mov edx, [AgentsHeapHandle] ; it too
+      stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
+
+ 
+      
+      mov ecx, [AgentsSize]
+      rep movsd             ; copying prev agents
+      pop esi
+      pop ecx
+
+      invoke HeapFree, edx, 0, ebx
+      
+
+      addAgentCell: 
+      
+      mov esi, [AgentsSize]
+      mov eax, AgentRecSizeIn
+      mul esi
+      mov edi, [AgentsAddr]
+      add edi, eax
+      mov dword[edi], esi ; agent number
+
+      mov eax, [fieldSize] 
+      mul [fieldSize]
+      sub eax, ecx
+      mov dword[edi + 4], eax ; curr coords
+      mov word[edi + 8], 0
+      stdcall RandGet, 8
+      mov word[edi + 10], ax
+      push ecx
+      mov ecx, eax
+      xor ebp, ebp ; curr instruction
+      RandInstruction:
+        stdcall RandGet, [TasksAmount]
+        mov byte[ebp + edi + 11], al
+        inc ebp
+      loop RandInstruction
+      pop ecx
+
+      inc esi
       jmp @F
       
     add ebx, 4
-    @@:
-    loop loopStart   
-    mov eax, edi 
+  @@:
+    cmp ecx, 0
+    jz stopLoop
+    jmp loopStart 
+  stopLoop:
   ret  
 endp
 
 
 ; eax - return new rand value up to maxVal
 proc RandGet, maxVal
+    xor eax, eax
     rdrand ax
-    mul [maxVal]
-    mov eax, dx
+    mul word[maxVal]
+    mov ebx, eax
+    movzx eax, dx
     shl eax, 16
-    add eax, dx
+    add eax, ebx
     ; in eax - value * NewMax
 
     xor edx, edx
@@ -121,8 +174,8 @@ proc RandGet, maxVal
     ret 
 endp
 
-; Allocate required amount of memory (memSize) for field. Save it's size in "TotalAllocSize". Stores heapHandle in HeapHandle
-proc allocMem, memSize, TotalAllocSize, HeapHandle, bufAddr
+; Allocate required amount of memory (memSize) for field. Stores heapHandle in HeapHandle
+proc allocMem, memSize, HeapHandle, bufAddr
   ; getting heap addr
   invoke GetProcessHeap
   mov [HeapHandle], eax
