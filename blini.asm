@@ -2,16 +2,12 @@ format PE GUI 4.0
 entry start
 
 section '.data' data readable writeable
-  HeapHandle dd 0
+  FieldHeapHandle dd 0
   fieldAddr dd 0
   fieldSize dd 20
   fieldCellSize dd 4
-  TotalAllocSize dd ?
-  buffer dd 20 dup(?)
-  ;wMax    dd 10
-  ;wMin    dd 0
-  ;RandwPrevNumber      dd      ?
-  ;randomMaxLen dd 20
+  FieldTotalAllocSize dd ?
+  ; buffer dd 20 dup(?)
   
   allocFailedMsg db 'allocation failed', 0
 
@@ -20,37 +16,29 @@ section '.text' code readable executable
 
 
 proc start
-  ;stdcall RandInit
-  stdcall getFieldSize, [fieldSize]
-  stdcall allocField, eax
+  stdcall getFieldSize, [fieldSize] ; into eax
+  stdcall allocField, eax, FieldTotalAllocSize, FieldHeapHandle
   stdcall fillField
-  invoke HeapFree, [HeapHandle], 0, [TotalAllocSize]
+  invoke HeapFree, [FieldHeapHandle], 0, [FieldTotalAllocSize]
   invoke ExitProcess, 0
   ret
 endp
-        
-
-proc RandInit 
-    ; setting seed
-    invoke GetTickCount
-    mov        [RandwPrevNumber], eax
-  ret
-endp
-      
  
+ ; eax - return generated amount of agents
 proc fillField
+  ; get emount of cells to generate
   mov eax, [fieldSize] 
   mul [fieldSize]
+
   xor ebx, ebx
   xor edi, edi
   mov ecx, eax
-  ;mov ebx, [randomMaxLen]
   loopStart:
     rdrand ax
     
-    cmp ax, 128
+    cmp al, 128
     jl EmptyCell
-    cmp ax, 200
+    cmp al, 200
     jl Food
     jmp Agent
   
@@ -58,49 +46,50 @@ proc fillField
       mov dword[fieldAddr + ebx], 0
       jmp @F
     Food:
-      sub ax, 128
-      shr ax, 2
-      and ax, $00_00_00_FF
+      ; get also amount of food
+      sub al, 128
+      shr al, 1
+      and eax, $00_00_00_FF
       bts eax, 15
+
+      ; food cell - 10_00_00_1f, 1f - food amount
       mov dword[fieldAddr + ebx], eax
       jmp @F
     Agent:
       mov eax, 0
-      bts eax, 15
+      ; bts eax, 15
       bts eax, 14
       add eax, edi
+      ; agent cell - 01_FF_FF_FF, FF_FF_FF - agent index
       mov dword[fieldAddr + ebx], eax
+      inc edi
       jmp @F
       
     add ebx, 4
-      
-    ;dec ebx
-    ;cmp ebx, 0
-    ;ja @F
-    ;   stdcall RandInit
-    ;   mov ebx, [randomMaxLen]
     @@:
-    loop loopStart    
+    loop loopStart   
+    mov eax, edi 
   ret  
 endp
 
-proc RandGet
-    mov        eax, [Random.wPrevNumber]
-    rol        eax, 7
-    adc        eax, 23
-    mov        [Random.wPrevNumber], eax
-    inc     [Random.wPrevNumber]
-    mov        ecx, [wMax]
-    sub        ecx, [wMin]
-    inc        ecx
-    xor        edx, edx
-    div        ecx
-    add        edx, [wMin]
-    xchg       eax, edx  
-  ret 
+
+; eax - return new rand value up to maxVal
+proc RandGet, maxVal
+    rdrand ax
+    mul [maxVal]
+    mov eax, dx
+    shl eax, 16
+    add eax, dx
+    ; in eax - value * NewMax
+
+    xor edx, edx
+    mov ecx, 0x00_00_FF_FF 
+    div ecx
+    ret 
 endp
 
-proc allocField, memSize
+; Allocate required amount of memory (memSize) for field. Save it's size in "TotalAllocSize". Stores heapHandle in HeapHandle
+proc allocField, memSize, TotalAllocSize, HeapHandle
   ; getting heap addr
   invoke GetProcessHeap
   mov [HeapHandle], eax
