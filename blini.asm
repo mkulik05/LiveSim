@@ -2,12 +2,21 @@ format PE GUI 4.0
 entry start
 
 section '.data' data readable writeable
-  FieldHeapHandle dd 0
-  fieldAddr dd 0
+  ; filed data
+  FieldHeapHandle dd ?
+  fieldAddr dd ?
   fieldSize dd 20
   fieldCellSize dd 4
   FieldTotalAllocSize dd ?
-  ; buffer dd 20 dup(?)
+
+  ; agents vec data
+  AgentRecSize dd 20
+  AgentsTotalAllocSize dd ?
+  AgentsHeapHandle dd ?
+  AgentsCapacity dd ?
+  AgentsSize dd ?
+  AgentsAddr dd ?
+    
   
   allocFailedMsg db 'allocation failed', 0
 
@@ -17,13 +26,37 @@ section '.text' code readable executable
 
 proc start
   stdcall getFieldSize, [fieldSize] ; into eax
-  stdcall allocField, eax, FieldTotalAllocSize, FieldHeapHandle
-  stdcall fillField
+
+  mov [FieldTotalAllocSize], eax
+  stdcall allocMem, eax, FieldTotalAllocSize, FieldHeapHandle, fieldAddr
+
+  stdcall fillField ; eax will store amount of agents
+
+  mov [AgentsSize], eax
+  add eax, [fieldSize] ; adding some reserved space for new agents
+  mov [AgentsCapacity], eax
+  mul [AgentRecSize] ; get agents buffer size
+  mov [AgentsTotalAllocSize], eax
+  stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
+
+  mov [FieldTotalAllocSize], eax
+
+  stdcall genAgents, eax
+
+  ; cleaning up
   invoke HeapFree, [FieldHeapHandle], 0, [FieldTotalAllocSize]
+  invoke HeapFree, [AgentsHeapHandle], 0, [AgentsTotalAllocSize]
   invoke ExitProcess, 0
   ret
 endp
  
+proc genAgents, agentsN
+  mov ecx, [agentsN]
+
+
+  ret
+endp
+
  ; eax - return generated amount of agents
 proc fillField
   ; get emount of cells to generate
@@ -89,17 +122,13 @@ proc RandGet, maxVal
 endp
 
 ; Allocate required amount of memory (memSize) for field. Save it's size in "TotalAllocSize". Stores heapHandle in HeapHandle
-proc allocField, memSize, TotalAllocSize, HeapHandle
+proc allocMem, memSize, TotalAllocSize, HeapHandle, bufAddr
   ; getting heap addr
   invoke GetProcessHeap
   mov [HeapHandle], eax
-  
-  ; saving allocated memory size
-  mov eax, [memSize]
-  mov [TotalAllocSize], eax
   ; alloc memory for field
   invoke HeapAlloc, [HeapHandle], 0, [memSize]
-  mov [fieldAddr], eax
+  mov [bufAddr], eax
   
   
   ; if ax is zero -- allocation failed
