@@ -74,7 +74,7 @@ proc startGame
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
       jg @F
-        stdcall removeAgent, esi
+        stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
       @@:
       mov ebx, dword[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B), total instructions amount(2B)
       shr ebx, 16
@@ -99,16 +99,18 @@ proc startGame
   ret
 endp
 
-proc removeAgent, ind
-    mov edi, [AgentsAddr]
+proc removeVecItem, Addr, PSize, ItemSize, CoordsOffset, ind
+    mov edi, [Addr]
     mov eax, [ind]
-    mul dword[AgentRecSize] 
+    mul dword[ItemSize] 
     add edi, eax ; got delete agent addr
 
-    mov esi, [edi + AGENT_COORDS_OFFSET] ; coords of agent
+    mov ebp, [CoordsOffset]
+    mov esi, [edi + ebp] ; coords of item
     mov dword[fieldAddr + esi * 4], 0 ; clear game field
     
-    mov eax, [AgentsSize]
+    mov eax, [PSize]
+    mov eax, [eax]
     cmp eax, 1
     jne @F
       jmp finished
@@ -118,17 +120,19 @@ proc removeAgent, ind
     jne @F
       jmp finished
     @@:
-      mov esi, [AgentsAddr]
-      mov eax, [AgentsSize]
+      mov esi, [Addr]
+      mov eax, [PSize]
+      mov eax, [eax]
       dec eax ; got index
-      mul dword[AgentRecSize] 
+      mul dword[ItemSize] 
       mov esi, eax
       
-      mov ecx, [AgentRecSizeIn]
+      mov ecx, [ItemSize]
       rep movsb ; write last agent info into whole after removed agent
 
     finished:
-      dec dword[AgentsSize]
+      mov esi, [PSize]
+      dec dword[esi]
   ret
 endp
 
@@ -173,18 +177,16 @@ proc fillField
       ; agent cell - 01_FF_FF_FF, FF_FF_FF - agent index
       mov dword[fieldAddr + ebx], eax
 
-      push ecx
-      push esi
       ; filling agents vector
       mov eax, [AgentsCapacity]
       cmp eax, [AgentsSize]
       jg addAgentCell 
       
-      stdcall ReallocAgents
+      stdcall ReallocVec, AgentsHeapHandle, AgentsTotalAllocSize, AgentsAddr, [AgentsSize], AgentsCapacity, [AgentRecSize]
       
 
       addAgentCell: 
-      
+
       mov esi, [AgentsSize]
       mov eax, AgentRecSizeIn
       mul esi
@@ -222,25 +224,26 @@ proc fillField
   ret  
 endp
 
-proc ReallocAgents
-  mov eax, [AgentsCapacity]
+proc ReallocVec uses ecx, PHeapHandle, PTotalAllocSize, PAddr, Size, PCapacity, ItemSize
+  mov eax, [PCapacity]
   ; creating new vector with bigger capacity
-  shl eax, 1 ; new capacity
-  mul dword[AgentRecSize]
+  shl dword[eax], 1 ; new capacity
+  mov eax, [eax]
 
-  mov ebx, [AgentsTotalAllocSize] ; backing it up 
-  mov [AgentsTotalAllocSize], eax
+  mul dword[ItemSize]
 
-  mov esi, [AgentsAddr] ; backing it up 
-  mov edx, [AgentsHeapHandle] ; it too
-  stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
+  mov edi, [PTotalAllocSize] ; backing it up 
+  mov ebx, [edi]
+  mov [edi], eax
+
+  mov esi, [PAddr]; backing it up 
+  mov ebp, [PHeapHandle] ; it too
+  stdcall allocMem, eax, [PHeapHandle], [PAddr]
   
-  mov ecx, [AgentsSize]
+  mov ecx, [Size]
   rep movsd             ; copying prev agents
-  pop esi
-  pop ecx
 
-  invoke HeapFree, edx, 0, ebx
+  invoke HeapFree, ebp, 0, ebx
   ret
 endp
 
@@ -262,14 +265,15 @@ proc RandGet, maxVal
 endp
 
 ; Allocate required amount of memory (memSize) for field. Stores heapHandle in HeapHandle
-proc allocMem, memSize, HeapHandle, bufAddr
+proc allocMem, memSize, PHeapHandle, PbufAddr
   ; getting heap addr
   invoke GetProcessHeap
-  mov [HeapHandle], eax
+  mov esi, [PHeapHandle] ; got addr of HeapHandle
+  mov [esi], eax
   ; alloc memory for field
-  invoke HeapAlloc, [HeapHandle], 0, [memSize]
-  mov [bufAddr], eax
-  
+  invoke HeapAlloc, eax, 0, [memSize]
+  mov esi, [PbufAddr] ; got addr of buf addr
+  mov [esi], eax
   
   ; if ax is zero -- allocation failed
   test eax, eax
