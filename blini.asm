@@ -6,12 +6,11 @@ section '.data' data readable writeable
   FieldHeapHandle dd ?
   fieldAddr dd ?
   fieldSize dd 20
-  fieldCellSize dd 4
+  fieldCellSize dd 1
   FieldTotalAllocSize dd ?
 
   ; agents vec data
   AgentRecSize dd 20
-  AgentRecSizeIn = 20
   AGENT_COORDS_OFFSET = 4 ; 4B
   AGENT_ENERGY_OFFSET = 8 ; 2B
   AGENT_CURR_INSTR_OFFSET = 10 ; 2B
@@ -26,7 +25,19 @@ section '.data' data readable writeable
   AgentsSize dd ?
   AgentsAddr dd ?
     
-  
+  ; food info
+  FoodRecSize dd 20
+  FOOD_COORDS_OFFSET = 4 ; 4B
+  FOOD_AMOUNT_OFFSET = 8 ; 2B
+  FOOD_MAX_AMOUNT = 50
+  TasksAmount dd 6
+  AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
+  AgentsTotalAllocSize dd ?
+  AgentsHeapHandle dd ?
+  AgentsCapacity dd ?
+  AgentsSize dd ?
+  AgentsAddr dd ?
+
   allocFailedMsg db 'allocation failed', 0
 
 section '.text' code readable executable
@@ -155,27 +166,23 @@ proc fillField
     jmp Agent
   
     EmptyCell:
-      mov dword[fieldAddr + ebx], 0
+      mov byte[fieldAddr + ebx], 0
       jmp @F
     Food:
-      ; get also amount of food
-      sub al, 128
-      shr al, 1
-      and eax, $00_00_00_FF
-      bts eax, 15
+      xor al, al
+      bts al, 7
 
-      ; food cell - 10_00_00_1f, 1f - food amount
-      mov dword[fieldAddr + ebx], eax
+      ; food cell - oldest bit is 1
+      mov byte[fieldAddr + ebx], al
       jmp @F
     Agent:
 
       ; filling cell in game field
-      mov eax, 0
-      ; bts eax, 15
-      bts eax, 14
+      xor eax, eax
+      bts al, 6
       add eax, edi
-      ; agent cell - 01_FF_FF_FF, FF_FF_FF - agent index
-      mov dword[fieldAddr + ebx], eax
+      ; agent cell - pre oldest bit is 1
+      mov byte[fieldAddr + ebx], al
 
       ; filling agents vector
       mov eax, [AgentsCapacity]
@@ -187,35 +194,35 @@ proc fillField
 
       addAgentCell: 
 
-      mov esi, [AgentsSize]
-      mov eax, AgentRecSizeIn
-      mul esi
-      mov edi, [AgentsAddr]
-      add edi, eax
-      mov dword[edi], esi ; agent number
+        mov esi, [AgentsSize]
+        mov eax, [AgentRecSize]
+        mul esi
+        mov edi, [AgentsAddr]
+        add edi, eax
+        mov dword[edi], esi ; agent number
 
-      mov eax, [fieldSize] 
-      mul [fieldSize]
-      sub eax, ecx
-      mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
-      mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
-      mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
-      stdcall RandGet, 8
-      mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
-      push ecx
-      mov ecx, eax
-      xor ebp, ebp ; curr instruction
-      RandInstruction:
-        stdcall RandGet, [TasksAmount]
-        mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
-        inc ebp
-      loop RandInstruction
-      pop ecx
+        mov eax, [fieldSize]  ; may be optimised mb
+        mul [fieldSize]
+        sub eax, ecx
+        mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
+        mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
+        mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
+        stdcall RandGet, 8
+        mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
+        push ecx
+        mov ecx, eax
+        xor ebp, ebp ; curr instruction
+        RandInstruction:
+          stdcall RandGet, [TasksAmount]
+          mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
+          inc ebp
+        loop RandInstruction
+        pop ecx
 
-      inc esi
-      jmp @F
+        inc esi
+        jmp @F
       
-    add ebx, 4
+        add ebx, 4
   @@:
     cmp ecx, 0
     jz stopLoop
