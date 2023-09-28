@@ -10,33 +10,32 @@ section '.data' data readable writeable
   FieldTotalAllocSize dd ?
 
   ; agents vec data
-  AgentRecSize dd 20
+  AgentRecSize dd 22
   AGENT_COORDS_OFFSET = 4 ; 4B
   AGENT_ENERGY_OFFSET = 8 ; 2B
   AGENT_CURR_INSTR_OFFSET = 10 ; 2B
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
+  AGENT_MAX_INSTRUCTIONS_N = 8
   AgentInitEnergy = 25
   TasksAmount dd 6
   AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
   AgentsTotalAllocSize dd ?
   AgentsHeapHandle dd ?
   AgentsCapacity dd ?
-  AgentsSize dd ?
+  AgentsSize dd 0
   AgentsAddr dd ?
     
   ; food info
-  FoodRecSize dd 20
-  FOOD_COORDS_OFFSET = 4 ; 4B
-  FOOD_AMOUNT_OFFSET = 8 ; 2B
-  FOOD_MAX_AMOUNT = 50
-  TasksAmount dd 6
-  AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
-  AgentsTotalAllocSize dd ?
-  AgentsHeapHandle dd ?
-  AgentsCapacity dd ?
-  AgentsSize dd ?
-  AgentsAddr dd ?
+  FoodRecSize dd 6
+  FOOD_COORDS_OFFSET = 0 ; 4B
+  FOOD_AMOUNT_OFFSET = 4 ; 2B
+  FoodMaxAmount dd 50
+  FoodTotalAllocSize dd ?
+  FoodHeapHandle dd ?
+  FoodCapacity dd ?
+  FoodSize dd 0
+  FoodAddr dd ?
 
   allocFailedMsg db 'allocation failed', 0
 
@@ -50,12 +49,21 @@ proc start
   mov [FieldTotalAllocSize], eax
   stdcall allocMem, eax, FieldHeapHandle, fieldAddr
 
-  mov [AgentsSize], 0
+  
+  ; alloc some space for agents
   mov eax, [fieldSize]
   mov [AgentsCapacity], eax
   mul [AgentRecSize] ; get agents buffer size
   mov [AgentsTotalAllocSize], eax
   stdcall allocMem, eax, AgentsHeapHandle, AgentsAddr
+
+  ; alloc some space for food
+
+  mov eax, [fieldSize]
+  mov [FoodCapacity], eax
+  mul [FoodRecSize] ; get agents buffer size
+  mov [FoodTotalAllocSize], eax
+  stdcall allocMem, eax, FoodHeapHandle, FoodAddr
 
   stdcall fillField
 
@@ -169,17 +177,33 @@ proc fillField
       mov byte[fieldAddr + ebx], 0
       jmp @F
     Food:
-      xor al, al
-      bts al, 7
-
+      and al, 1000_0000b
       ; food cell - oldest bit is 1
       mov byte[fieldAddr + ebx], al
+      
+      ; chech is there enough memory
+      mov eax, [FoodCapacity]
+      cmp eax, [FoodSize]
+      jg addFoodCell 
+      
+      stdcall ReallocVec, FoodHeapHandle, FoodTotalAllocSize, FoodAddr, [FoodSize], FoodCapacity, [FoodRecSize]
+      
+
+      addFoodCell: 
+        mov edi, [FoodAddr]
+        mov eax, [fieldSize]  ; may be optimised mb
+        mul [fieldSize]
+        sub eax, ecx
+        mov dword[edi + FOOD_COORDS_OFFSET], eax ; curr coords
+        stdcall RandInt, [FoodMaxAmount]
+        mov word[edi + FOOD_AMOUNT_OFFSET], ax ; save food amount
+
       jmp @F
     Agent:
 
       ; filling cell in game field
       xor eax, eax
-      bts al, 6
+      and al, 0100_0000b
       add eax, edi
       ; agent cell - pre oldest bit is 1
       mov byte[fieldAddr + ebx], al
@@ -207,19 +231,19 @@ proc fillField
         mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
         mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
         mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
-        stdcall RandGet, 8
+        stdcall RandInt, AGENT_MAX_INSTRUCTIONS_N
         mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
         push ecx
         mov ecx, eax
         xor ebp, ebp ; curr instruction
         RandInstruction:
-          stdcall RandGet, [TasksAmount]
+          stdcall RandInt, [TasksAmount]
           mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
           inc ebp
         loop RandInstruction
         pop ecx
 
-        inc esi
+        inc dword[AgentsSize]
         jmp @F
       
         add ebx, 4
@@ -255,7 +279,7 @@ proc ReallocVec uses ecx, PHeapHandle, PTotalAllocSize, PAddr, Size, PCapacity, 
 endp
 
 ; eax - return new rand value up to maxVal
-proc RandGet, maxVal
+proc RandInt, maxVal
     xor eax, eax
     rdrand ax
     mul word[maxVal]
