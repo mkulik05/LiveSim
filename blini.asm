@@ -12,6 +12,11 @@ section '.data' data readable writeable
   ; agents vec data
   AgentRecSize dd 20
   AgentRecSizeIn = 20
+  AGENT_COORDS_OFFSET = 4 ; 4B
+  AGENT_ENERGY_OFFSET = 8 ; 2B
+  AGENT_CURR_INSTR_OFFSET = 10 ; 2B
+  AGENT_INSTR_NUM_OFFSET = 12  ; 2B
+  AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AgentInitEnergy = 25
   TasksAmount dd 6
   AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
@@ -66,24 +71,24 @@ proc startGame
       add edi, eax ; got current agent addr
 
       ; CHECK ROBOT ENERGY
-      movzx eax, word[edi + 8]
+      movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
       jg @F
         stdcall removeAgent, esi
       @@:
-      mov ebx, dword[edi + 10] ; got curr instruction(2B), total instructions amount(2B)
+      mov ebx, dword[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B), total instructions amount(2B)
       shr ebx, 16
-      movzx ebp, byte[edi + 13 + ebx] ; got instruction index
+      movzx ebp, byte[edi + ebx + AGENT_INSTR_VEC_OFFSET] ; got instruction index
 
       stdcall dword[AgentTasks + ebp * 4] ; calling instruction
 
       ; switch to next instruction
       inc bx
-      cmp bx, word[edi + 12]
+      cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET]
       jge ReturnToFirstInstruction
-        inc word[edi + 10]
+        inc word[edi + AGENT_CURR_INSTR_OFFSET]
       ReturnToFirstInstruction:
-        mov word[edi + 10], 0
+        mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
       inc esi
       loop AgentsVecLoop
@@ -100,7 +105,7 @@ proc removeAgent, ind
     mul dword[AgentRecSize] 
     add edi, eax ; got delete agent addr
 
-    mov esi, [edi + 4] ; coords of agent
+    mov esi, [edi + AGENT_COORDS_OFFSET] ; coords of agent
     mov dword[fieldAddr + esi * 4], 0 ; clear game field
     
     mov eax, [AgentsSize]
@@ -190,17 +195,17 @@ proc fillField
       mov eax, [fieldSize] 
       mul [fieldSize]
       sub eax, ecx
-      mov dword[edi + 4], eax ; curr coords
-      mov word[edi + 8], AgentInitEnergy
-      mov word[edi + 10], 0
+      mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
+      mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
+      mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
       stdcall RandGet, 8
-      mov word[edi + 12], ax
+      mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
       push ecx
       mov ecx, eax
       xor ebp, ebp ; curr instruction
       RandInstruction:
         stdcall RandGet, [TasksAmount]
-        mov byte[ebp + edi + 13], al
+        mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
         inc ebp
       loop RandInstruction
       pop ecx
