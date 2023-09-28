@@ -66,7 +66,11 @@ proc startGame
       add edi, eax ; got current agent addr
 
       ; CHECK ROBOT ENERGY
-
+      movzx eax, word[edi + 8]
+      cmp eax, 0
+      jg @F
+        stdcall removeAgent, esi
+      @@:
       mov ebx, dword[edi + 10] ; got curr instruction(2B), total instructions amount(2B)
       shr ebx, 16
       movzx ebp, byte[edi + 13 + ebx] ; got instruction index
@@ -87,6 +91,39 @@ proc startGame
     jmp gameLoop
 
   GameOver:
+  ret
+endp
+
+proc removeAgent, ind
+    mov edi, [AgentsAddr]
+    mov eax, [ind]
+    mul dword[AgentRecSize] 
+    add edi, eax ; got delete agent addr
+
+    mov esi, [edi + 4] ; coords of agent
+    mov dword[fieldAddr + esi * 4], 0 ; clear game field
+    
+    mov eax, [AgentsSize]
+    cmp eax, 1
+    jne @F
+      jmp finished
+    @@:
+    inc eax ; cause indexes from zero
+    cmp eax, [ind]
+    jne @F
+      jmp finished
+    @@:
+      mov esi, [AgentsAddr]
+      mov eax, [AgentsSize]
+      dec eax ; got index
+      mul dword[AgentRecSize] 
+      mov esi, eax
+      
+      mov ecx, [AgentRecSizeIn]
+      rep movsb ; write last agent info into whole after removed agent
+
+    finished:
+      dec dword[AgentsSize]
   ret
 endp
 
