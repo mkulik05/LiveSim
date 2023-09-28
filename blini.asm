@@ -12,6 +12,7 @@ section '.data' data readable writeable
   ; agents vec data
   AgentRecSize dd 20
   AgentRecSizeIn = 20
+  AgentInitEnergy = 25
   TasksAmount dd 6
   AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
   AgentsTotalAllocSize dd ?
@@ -42,6 +43,8 @@ proc start
 
   stdcall fillField
 
+  stdcall startGame
+
   ; cleaning up
   invoke HeapFree, [FieldHeapHandle], 0, [FieldTotalAllocSize]
   invoke HeapFree, [AgentsHeapHandle], 0, [AgentsTotalAllocSize]
@@ -49,7 +52,45 @@ proc start
   ret
 endp
  
- ; eax - return generated amount of agents
+proc startGame
+  xor ebp, ebp ; tact counter
+
+  gameLoop:
+    mov ecx, [AgentsSize]
+    jz GameOver ; all agents died
+    xor esi, esi
+    AgentsVecLoop:
+      mov edi, [AgentsAddr]
+      mov eax, esi
+      mul dword[AgentRecSize] 
+      add edi, eax ; got current agent addr
+
+      ; CHECK ROBOT ENERGY
+
+      mov ebx, dword[edi + 10] ; got curr instruction(2B), total instructions amount(2B)
+      shr ebx, 16
+      movzx ebp, byte[edi + 13 + ebx] ; got instruction index
+
+      stdcall dword[AgentTasks + ebp * 4] ; calling instruction
+
+      ; switch to next instruction
+      inc bx
+      cmp bx, word[edi + 12]
+      jge ReturnToFirstInstruction
+        inc word[edi + 10]
+      ReturnToFirstInstruction:
+        mov word[edi + 10], 0
+
+      inc esi
+      loop AgentsVecLoop
+
+    jmp gameLoop
+
+  GameOver:
+  ret
+endp
+
+; generates field with food, with agents and so on
 proc fillField
   ; get emount of cells to generate
   mov eax, [fieldSize] 
@@ -113,15 +154,16 @@ proc fillField
       mul [fieldSize]
       sub eax, ecx
       mov dword[edi + 4], eax ; curr coords
-      mov word[edi + 8], 0
+      mov word[edi + 8], AgentInitEnergy
+      mov word[edi + 10], 0
       stdcall RandGet, 8
-      mov word[edi + 10], ax
+      mov word[edi + 12], ax
       push ecx
       mov ecx, eax
       xor ebp, ebp ; curr instruction
       RandInstruction:
         stdcall RandGet, [TasksAmount]
-        mov byte[ebp + edi + 11], al
+        mov byte[ebp + edi + 13], al
         inc ebp
       loop RandInstruction
       pop ecx
