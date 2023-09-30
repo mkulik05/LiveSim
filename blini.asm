@@ -5,7 +5,7 @@ section '.data' data readable writeable
   ; filed data
   FieldHeapHandle dd ?
   fieldAddr dd ?
-  fieldSize dd 20
+  fieldSize dd 2
   fieldCellSize dd 1
   FieldTotalAllocSize dd ?
 
@@ -16,7 +16,7 @@ section '.data' data readable writeable
   AGENT_CURR_INSTR_OFFSET = 10 ; 2B
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
-  AGENT_MAX_INSTRUCTIONS_N = 8
+  AGENT_MAX_INSTRUCTIONS_N = 8 ; +1 instruction
   AgentInitEnergy = 25
   TasksAmount dd 6
   AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
@@ -126,7 +126,8 @@ proc removeVecItem, Addr, PSize, ItemSize, CoordsOffset, ind
 
     mov ebp, [CoordsOffset]
     mov esi, [edi + ebp] ; coords of item
-    mov dword[fieldAddr + esi * 4], 0 ; clear game field
+    mov ebx, [fieldAddr]
+    mov dword[ebx + esi * 4], 0 ; clear game field
     
     mov eax, [PSize]
     mov eax, [eax]
@@ -165,21 +166,23 @@ proc fillField
   xor esi, esi
   mov ecx, eax
   loopStart:
-    rdrand ax
+    call rdrandAX
     
-    cmp al, 128
-    jl EmptyCell
-    cmp al, 200
-    jl Food
+    ; cmp al, 128
+    ; jl EmptyCell
+    ; cmp al, 200
+    ; jl Food
     jmp Agent
   
     EmptyCell:
-      mov byte[fieldAddr + ebx], 0
+      mov esi, [fieldAddr]
+      mov byte[esi + ebx], 0
       jmp @F
     Food:
-      and al, 1000_0000b
+      mov al, 1000_0000b
       ; food cell - oldest bit is 1
-      mov byte[fieldAddr + ebx], al
+      mov esi, [fieldAddr]
+      mov byte[esi + ebx], al
       
       ; chech is there enough memory
       mov eax, [FoodCapacity]
@@ -203,10 +206,10 @@ proc fillField
 
       ; filling cell in game field
       xor eax, eax
-      and al, 0100_0000b
-      add eax, edi
+      add al, 0100_0000b
       ; agent cell - pre oldest bit is 1
-      mov byte[fieldAddr + ebx], al
+      mov esi, [fieldAddr]
+      mov byte[esi + ebx], al
 
       ; filling agents vector
       mov eax, [AgentsCapacity]
@@ -232,6 +235,7 @@ proc fillField
         mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
         mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
         stdcall RandInt, AGENT_MAX_INSTRUCTIONS_N
+        inc ax
         mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
         push ecx
         mov ecx, eax
@@ -246,8 +250,9 @@ proc fillField
         inc dword[AgentsSize]
         jmp @F
       
-        add ebx, 4
+        add ebx, 1
   @@:
+    dec ecx
     cmp ecx, 0
     jz stopLoop
     jmp loopStart 
@@ -255,7 +260,10 @@ proc fillField
   ret  
 endp
 
-proc ReallocVec uses ecx, PHeapHandle, PTotalAllocSize, PAddr, Size, PCapacity, ItemSize
+rdrandAX:
+  rdrand ax
+  ret
+proc ReallocVec uses ecx ebx edi esi edx, PHeapHandle, PTotalAllocSize, PAddr, Size, PCapacity, ItemSize
   mov eax, [PCapacity]
   ; creating new vector with bigger capacity
   shl dword[eax], 1 ; new capacity
@@ -267,19 +275,22 @@ proc ReallocVec uses ecx, PHeapHandle, PTotalAllocSize, PAddr, Size, PCapacity, 
   mov ebx, [edi]
   mov [edi], eax
 
-  mov esi, [PAddr]; backing it up 
-  mov ebp, [PHeapHandle] ; it too
+  mov esi, [PAddr] ; preparing for data copying (for movsd)
+  mov edx, [PHeapHandle] ; 
   stdcall allocMem, eax, [PHeapHandle], [PAddr]
-  
-  mov ecx, [Size]
-  rep movsd             ; copying prev agents
+  mov edi, [PAddr]
+  mov edi, [edi]
+  mov eax, [Size]
+  mul [AgentRecSize]
+  mov ecx, eax
+  rep movsb             ; copying prev agents
 
-  invoke HeapFree, ebp, 0, ebx
+  mov esi, edx ; move into esi (don't need it anymore)
+  invoke HeapFree, [esi], 0, ebx
   ret
 endp
-
 ; eax - return new rand value up to maxVal
-proc RandInt, maxVal
+proc RandInt uses ecx ebx edx, maxVal 
     xor eax, eax
     rdrand ax
     mul word[maxVal]
@@ -296,7 +307,7 @@ proc RandInt, maxVal
 endp
 
 ; Allocate required amount of memory (memSize) for field. Stores heapHandle in HeapHandle
-proc allocMem, memSize, PHeapHandle, PbufAddr
+proc allocMem uses esi edx, memSize, PHeapHandle, PbufAddr
   ; getting heap addr
   invoke GetProcessHeap
   mov esi, [PHeapHandle] ; got addr of HeapHandle
