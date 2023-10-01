@@ -5,7 +5,7 @@ section '.data' data readable writeable
   HeapHandle dd ?
   TotalAllocSize dd ?
   ; field data
-  fieldSize dd 100
+  fieldSize dd 2
   fieldCellSize dd 1
   fieldAddr dd ?
 
@@ -42,7 +42,6 @@ section '.text' code readable executable
 proc start
   stdcall getFieldSize, [fieldSize] ; got field size
   mov [TotalAllocSize], eax
-
   ; assuming that maximum amount of agents is n * n/2, for food same
   mov eax, [fieldSize]
   mul [fieldSize]
@@ -149,16 +148,16 @@ proc fillField
       mov byte[esi + ebx], 0
       jmp @F
     Food:
-      mov al, 1000_0000b
-      ; food cell - oldest bit is 1
-      mov esi, [fieldAddr]
-      mov byte[esi + ebx], al
-      
       ; chech is there enough memory
       mov eax, [FoodCapacity]
       cmp eax, [FoodSize]
       jle EmptyCell 
-      
+
+      mov al, 1000_0000b
+
+      ; food cell - oldest bit is 1
+      mov esi, [fieldAddr]
+      mov byte[esi + ebx], al      
      
       mov edi, [FoodAddr]
       mov eax, [fieldSize]  ; may be optimised mb
@@ -171,17 +170,19 @@ proc fillField
 
     Agent:
 
-      ; filling cell in game field
+      ; if agents vector is filed, skipping it
+      mov eax, [AgentsCapacity]
+      cmp eax, [AgentsSize]
+      jle EmptyCell
+
+      ; filling cell in game field and then agents vector
       xor eax, eax
       add al, 0100_0000b
+
       ; agent cell - pre oldest bit is 1
       mov esi, [fieldAddr]
       mov byte[esi + ebx], al
 
-      ; filling agents vector
-      mov eax, [AgentsCapacity]
-      cmp eax, [AgentsSize]
-      jle EmptyCell
 
       mov esi, [AgentsSize]
       mov eax, [AgentRecSize]
@@ -212,8 +213,8 @@ proc fillField
       inc dword[AgentsSize]
       jmp @F
     
-      add ebx, 1
   @@:
+    add ebx, 1
     dec ecx
     cmp ecx, 0
     jz stopLoop
