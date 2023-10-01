@@ -5,7 +5,7 @@ section '.data' data readable writeable
   HeapHandle dd ?
   TotalAllocSize dd ?
   ; field data
-  fieldSize dd 2
+  fieldSize dd 16
   fieldCellSize dd 1
   fieldAddr dd ?
 
@@ -158,14 +158,19 @@ proc fillField
       ; food cell - oldest bit is 1
       mov esi, [fieldAddr]
       mov byte[esi + ebx], al      
-     
+
+
       mov edi, [FoodAddr]
+      mov eax, [FoodSize]
+      mul [FoodRecSize]
+      add edi, eax
       mov eax, [fieldSize]  ; may be optimised mb
       mul [fieldSize]
       sub eax, ecx
       mov dword[edi + FOOD_COORDS_OFFSET], eax ; curr coords
       stdcall RandInt, [FoodMaxAmount]
       mov word[edi + FOOD_AMOUNT_OFFSET], ax ; save food amount
+      inc [FoodSize]
       jmp @F
 
     Agent:
@@ -189,7 +194,7 @@ proc fillField
       mul esi
       mov edi, [AgentsAddr]
       add edi, eax
-      mov dword[edi], esi ; agent number
+      mov dword[edi], esi ; agent number (because we have indexing from zero, agents size will next agent id (used ONLY DURING GENERATION, before any agent died) )
 
       mov eax, [fieldSize]  ; may be optimised mb
       mul [fieldSize]
