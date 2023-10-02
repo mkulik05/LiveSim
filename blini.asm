@@ -5,7 +5,7 @@ section '.data' data readable writeable
   HeapHandle dd ?
   TotalAllocSize dd ?
   ; field data
-  fieldSize dd 16
+  fieldSize dd 4
   fieldCellSize dd 1
   fieldAddr dd ?
 
@@ -18,8 +18,8 @@ section '.data' data readable writeable
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; +1 instruction
   AgentInitEnergy = 25
-  TasksAmount dd 6
-  AgentTasks dd 1, 2, 3, 4, 5, 6 ; there will be pointers to instruction functions
+  TasksAmount dd 5
+  AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 ; there will be pointers to instruction functions
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
@@ -37,8 +37,6 @@ section '.data' data readable writeable
 
 section '.text' code readable executable
   include 'win32a.inc'
-
-
 proc start
   stdcall getFieldSize, [fieldSize] ; got field size
   mov [TotalAllocSize], eax
@@ -101,29 +99,117 @@ proc startGame
       cmp eax, 0
       jg @F
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
+        jmp Continue
       @@:
-      mov ebx, dword[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B), total instructions amount(2B)
-      shr ebx, 16
-      movzx ebp, byte[edi + ebx + AGENT_INSTR_VEC_OFFSET] ; got instruction index
-
-      stdcall dword[AgentTasks + ebp * 4] ; calling instruction
+      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B)
+      movzx ebx, byte[edi + ebx + AGENT_INSTR_VEC_OFFSET] ; got instruction index (in array of functions to call)
+      stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
 
       ; switch to next instruction
       inc bx
       cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET]
       jge ReturnToFirstInstruction
-        inc word[edi + AGENT_CURR_INSTR_OFFSET]
+      inc word[edi + AGENT_CURR_INSTR_OFFSET]
       ReturnToFirstInstruction:
         mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
-      inc esi
+      Continue:
+        inc esi
       loop AgentsVecLoop
-
+      inc ebp
     jmp gameLoop
 
   GameOver:
   ret
 endp
+
+proc AgentMoveTop, ind
+  mov esi, [AgentsAddr]
+  mov eax, [ind]
+  mul [AgentRecSize]
+  add esi, eax
+
+  mov edi, [fieldSize]
+  cmp [esi + AGENT_COORDS_OFFSET], edi
+  jb .decrEnergy; agent is at top line - so skip move, but energy is decreased
+
+  sub [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
+
+  .decrEnergy:
+  dec word[esi + AGENT_ENERGY_OFFSET]
+  
+  ret
+endp
+proc AgentMoveDown, ind
+  mov esi, [AgentsAddr]
+  mov eax, [ind]
+  mul [AgentRecSize]
+  add esi, eax
+
+  
+  mov edi, [fieldSize]
+  mov eax, edi
+  mul eax
+  sub eax, edi ; getting last line start position
+  cmp [esi + AGENT_COORDS_OFFSET], edi
+  jge .decrEnergy; agent is at bottom line - so skip move, but energy is decreased
+
+  add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
+
+  .decrEnergy:
+  dec word[esi + AGENT_ENERGY_OFFSET]
+  
+  ret
+endp
+
+proc AgentMoveRight, ind
+  mov esi, [AgentsAddr]
+  mov eax, [ind]
+  mul [AgentRecSize]
+  add esi, eax
+
+  
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  add eax, 1
+  xor edx, edx
+  div [fieldSize]
+  cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
+  je .decrEnergy; agent is at right edge - so skip move, but energy is decreased
+
+  inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
+
+  .decrEnergy:
+  dec word[esi + AGENT_ENERGY_OFFSET]
+  
+  ret
+endp
+
+proc AgentMoveLeft, ind
+  mov esi, [AgentsAddr]
+  mov eax, [ind]
+  mul [AgentRecSize]
+  add esi, eax
+
+  
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  xor edx, edx
+  div [fieldSize]
+  cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
+  je .decrEnergy; agent is at left edge - so skip move, but energy is decreased
+
+  dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
+
+  .decrEnergy:
+  dec word[esi + AGENT_ENERGY_OFFSET]
+  
+  ret
+endp
+
+proc AgentSleep, ind
+
+  ret
+endp
+
 
 ; generates field with food, with agents and so on
 proc fillField
@@ -135,7 +221,7 @@ proc fillField
   xor esi, esi
   mov ecx, eax
   loopStart:
-    call rdrandAX
+    rdrand ax
     
     cmp al, 128
     jb EmptyCell
@@ -228,9 +314,6 @@ proc fillField
   ret  
 endp
 
-rdrandAX:
-  rdrand ax
-  ret
 ; eax - return new rand value up to maxVal
 proc RandInt uses ecx ebx edx, maxVal 
     xor eax, eax
