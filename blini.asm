@@ -135,12 +135,20 @@ proc AgentMoveTop uses esi edi ebx, ind
   cmp [esi + AGENT_COORDS_OFFSET], edi
   jb .decrEnergy; agent is at top line - so skip move, but energy is decreased
 
+  ; check that target cell empty
+  neg edi
+  and byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  jnz .decrEnergy ; cell is busy
+
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[fieldAddr + ebx], al
-  sub [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
-  neg edi
+
+  ; edi is already negative
+  add [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
+  
+  ; edi is already negative
   or byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
 
   .decrEnergy:
@@ -154,13 +162,16 @@ proc AgentMoveDown uses esi edi ebx, ind
   mul [AgentRecSize]
   add esi, eax
 
-  
   mov edi, [fieldSize]
   mov eax, edi
   mul eax
   sub eax, edi ; getting last line start position
   cmp [esi + AGENT_COORDS_OFFSET], edi
   jge .decrEnergy; agent is at bottom line - so skip move, but energy is decreased
+
+  ; check that target cell empty
+  and byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
@@ -189,6 +200,10 @@ proc AgentMoveRight uses esi edi ebx, ind
   cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
   je .decrEnergy; agent is at right edge - so skip move, but energy is decreased
 
+  ; check that target cell empty
+  and byte[fieldAddr + ebx + 1], FIELD_AGENT_STATE
+  jnz .decrEnergy ; cell is busy
+
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
@@ -214,6 +229,10 @@ proc AgentMoveLeft uses esi edi ebx, ind
   div [fieldSize]
   cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
   je .decrEnergy; agent is at left edge - so skip move, but energy is decreased
+
+  ; check that target cell empty
+  and byte[fieldAddr + ebx - 1], FIELD_AGENT_STATE
+  jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
