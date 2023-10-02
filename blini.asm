@@ -8,6 +8,8 @@ section '.data' data readable writeable
   fieldSize dd 4
   fieldCellSize dd 1
   fieldAddr dd ?
+  FIELD_AGENT_STATE = 0100_0000b
+  FIELD_FOOD_STATE = 1000_0000b
 
   ; agents vec data
   AgentRecSize dd 22
@@ -123,7 +125,7 @@ proc startGame
   ret
 endp
 
-proc AgentMoveTop, ind
+proc AgentMoveTop uses esi edi ebx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -133,14 +135,20 @@ proc AgentMoveTop, ind
   cmp [esi + AGENT_COORDS_OFFSET], edi
   jb .decrEnergy; agent is at top line - so skip move, but energy is decreased
 
+  mov ebx, [esi + AGENT_COORDS_OFFSET]
+  mov al, 0xFF
+  xor al, FIELD_AGENT_STATE
+  and byte[fieldAddr + ebx], al
   sub [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
+  neg edi
+  or byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
   
   ret
 endp
-proc AgentMoveDown, ind
+proc AgentMoveDown uses esi edi ebx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -154,7 +162,12 @@ proc AgentMoveDown, ind
   cmp [esi + AGENT_COORDS_OFFSET], edi
   jge .decrEnergy; agent is at bottom line - so skip move, but energy is decreased
 
+  mov ebx, [esi + AGENT_COORDS_OFFSET]
+  mov al, 0xFF
+  xor al, FIELD_AGENT_STATE
+  and byte[fieldAddr + ebx], al
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
+  or byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -162,7 +175,7 @@ proc AgentMoveDown, ind
   ret
 endp
 
-proc AgentMoveRight, ind
+proc AgentMoveRight uses esi edi ebx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -176,7 +189,12 @@ proc AgentMoveRight, ind
   cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
   je .decrEnergy; agent is at right edge - so skip move, but energy is decreased
 
+  mov ebx, [esi + AGENT_COORDS_OFFSET]
+  mov al, 0xFF
+  xor al, FIELD_AGENT_STATE
+  and byte[fieldAddr + ebx], al
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
+  or byte[fieldAddr + ebx + 1], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -184,7 +202,7 @@ proc AgentMoveRight, ind
   ret
 endp
 
-proc AgentMoveLeft, ind
+proc AgentMoveLeft uses esi edi ebx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -197,7 +215,12 @@ proc AgentMoveLeft, ind
   cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
   je .decrEnergy; agent is at left edge - so skip move, but energy is decreased
 
+  mov ebx, [esi + AGENT_COORDS_OFFSET]
+  mov al, 0xFF
+  xor al, FIELD_AGENT_STATE
+  and byte[fieldAddr + ebx], al
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
+  or byte[fieldAddr + ebx - 1], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -239,7 +262,7 @@ proc fillField
       cmp eax, [FoodSize]
       jle EmptyCell 
 
-      mov al, 1000_0000b
+      mov ax, FIELD_FOOD_STATE
 
       ; food cell - oldest bit is 1
       mov esi, [fieldAddr]
@@ -267,8 +290,7 @@ proc fillField
       jle EmptyCell
 
       ; filling cell in game field and then agents vector
-      xor eax, eax
-      add al, 0100_0000b
+      mov eax, FIELD_AGENT_STATE
 
       ; agent cell - pre oldest bit is 1
       mov esi, [fieldAddr]
