@@ -421,7 +421,7 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
     mov ebx, [fieldAddr]
 
     ; NEED TO BE FIXED IN THE FUTURE
-    mov dword[ebx + esi], 0 ; clear game field
+    mov byte[ebx + esi], 0 ; clear game field
     
     mov eax, [PSize]
     mov eax, [eax]
@@ -439,7 +439,7 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
       mov eax, [eax]
       dec eax ; got index
       mul dword[ItemSize] 
-      mov esi, eax
+      add esi, eax
       
       mov ecx, [ItemSize]
       rep movsb ; write last agent info into whole after removed agent
