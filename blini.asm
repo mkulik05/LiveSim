@@ -103,6 +103,7 @@ proc startGame
       cmp eax, 0
       jg @F
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
+        dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
         jmp Continue
       @@:
       movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B)
@@ -110,12 +111,12 @@ proc startGame
       stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
 
       ; switch to next instruction
-      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
-      cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET]
-      jge ReturnToFirstInstruction
       inc word[edi + AGENT_CURR_INSTR_OFFSET]
-      ReturnToFirstInstruction:
-        mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
+      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
+      cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET] ; if instr i < MAX_I - continut
+      jb Continue
+      jl Continue
+      mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
       Continue:
         inc esi
@@ -128,7 +129,7 @@ proc startGame
 endp
 
 ; BP registor is used inside!!!
-proc AgentMoveTop uses esi edi ebx, ind
+proc AgentMoveTop uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -141,7 +142,7 @@ proc AgentMoveTop uses esi edi ebx, ind
   ; check that target cell empty
   neg edi
   mov ebp, [fieldAddr]
-  add ebp, ebx
+  add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
@@ -161,7 +162,7 @@ proc AgentMoveTop uses esi edi ebx, ind
   
   ret
 endp
-proc AgentMoveDown uses esi edi ebx, ind
+proc AgentMoveDown uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -176,7 +177,7 @@ proc AgentMoveDown uses esi edi ebx, ind
 
   ; check that target cell empty
   mov ebp, [fieldAddr]
-  add ebp, ebx
+  add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
@@ -193,7 +194,7 @@ proc AgentMoveDown uses esi edi ebx, ind
   ret
 endp
 
-proc AgentMoveRight uses esi edi ebx, ind
+proc AgentMoveRight uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -208,8 +209,8 @@ proc AgentMoveRight uses esi edi ebx, ind
   je .decrEnergy; agent is at right edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-    mov ebp, [fieldAddr]
-  add ebp, ebx
+  mov ebp, [fieldAddr]
+  add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
@@ -226,7 +227,7 @@ proc AgentMoveRight uses esi edi ebx, ind
   ret
 endp
 
-proc AgentMoveLeft uses esi edi ebx, ind
+proc AgentMoveLeft uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mul [AgentRecSize]
@@ -241,7 +242,7 @@ proc AgentMoveLeft uses esi edi ebx, ind
 
   ; check that target cell empty
   mov ebp, [fieldAddr]
-  add ebp, ebx
+  add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp - 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
@@ -409,16 +410,18 @@ proc allocMem uses esi edx, memSize, PHeapHandle, PbufAddr
 endp
 
 
-proc removeVecItem, Addr, PSize, ItemSize, CoordsOffset, ind
+proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset, ind
     mov edi, [Addr]
     mov eax, [ind]
     mul dword[ItemSize] 
     add edi, eax ; got delete agent addr
 
-    mov ebp, [CoordsOffset]
-    mov esi, [edi + ebp] ; coords of item
+    mov ebx, [CoordsOffset]
+    mov esi, [edi + ebx] ; coords of item
     mov ebx, [fieldAddr]
-    mov dword[ebx + esi * 4], 0 ; clear game field
+
+    ; NEED TO BE FIXED IN THE FUTURE
+    mov dword[ebx + esi], 0 ; clear game field
     
     mov eax, [PSize]
     mov eax, [eax]
@@ -426,7 +429,7 @@ proc removeVecItem, Addr, PSize, ItemSize, CoordsOffset, ind
     jne @F
       jmp finished
     @@:
-    inc eax ; cause indexes from zero
+    dec eax ; cause indexes from zero
     cmp eax, [ind]
     jne @F
       jmp finished
