@@ -79,7 +79,7 @@ proc start
 
   invoke MessageBox, 0, allocFailedMsg, deathMsg, MB_OK
   ; cleaning up
-  invoke HeapFree, [HeapHandle], 0, [TotalAllocSize]
+  invoke HeapFree, [HeapHandle], 0, [fieldAddr]
   invoke ExitProcess, 0
   ret
 endp
