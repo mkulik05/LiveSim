@@ -36,6 +36,7 @@ section '.data' data readable writeable
   FoodAddr dd ?
 
   allocFailedMsg db 'allocation failed', 0
+  deathMsg db 'Everyone died', 0
 
 section '.text' code readable executable
   include 'win32a.inc'
@@ -76,6 +77,7 @@ proc start
 
   stdcall startGame
 
+  invoke MessageBox, 0, allocFailedMsg, deathMsg, MB_OK
   ; cleaning up
   invoke HeapFree, [HeapHandle], 0, [TotalAllocSize]
   invoke ExitProcess, 0
@@ -108,7 +110,7 @@ proc startGame
       stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
 
       ; switch to next instruction
-      inc bx
+      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
       cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET]
       jge ReturnToFirstInstruction
       inc word[edi + AGENT_CURR_INSTR_OFFSET]
@@ -125,6 +127,7 @@ proc startGame
   ret
 endp
 
+; BP registor is used inside!!!
 proc AgentMoveTop uses esi edi ebx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
@@ -137,19 +140,21 @@ proc AgentMoveTop uses esi edi ebx, ind
 
   ; check that target cell empty
   neg edi
-  and byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  mov ebp, [fieldAddr]
+  add ebp, ebx
+  test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
-  and byte[fieldAddr + ebx], al
+  and byte[ebp], al
 
   ; edi is already negative
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
   
   ; edi is already negative
-  or byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  or byte[ebp + edi], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -170,15 +175,17 @@ proc AgentMoveDown uses esi edi ebx, ind
   jge .decrEnergy; agent is at bottom line - so skip move, but energy is decreased
 
   ; check that target cell empty
-  and byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  mov ebp, [fieldAddr]
+  add ebp, ebx
+  test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
-  and byte[fieldAddr + ebx], al
+  and byte[ebp], al
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
-  or byte[fieldAddr + ebx + edi], FIELD_AGENT_STATE
+  or byte[ebp + edi], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -201,19 +208,21 @@ proc AgentMoveRight uses esi edi ebx, ind
   je .decrEnergy; agent is at right edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  and byte[fieldAddr + ebx + 1], FIELD_AGENT_STATE
+    mov ebp, [fieldAddr]
+  add ebp, ebx
+  test byte[ebp + 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
-  and byte[fieldAddr + ebx], al
+  and byte[ebp], al
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
-  or byte[fieldAddr + ebx + 1], FIELD_AGENT_STATE
+  or byte[ebp + 1], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
-  
+
   ret
 endp
 
@@ -231,15 +240,17 @@ proc AgentMoveLeft uses esi edi ebx, ind
   je .decrEnergy; agent is at left edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  and byte[fieldAddr + ebx - 1], FIELD_AGENT_STATE
+  mov ebp, [fieldAddr]
+  add ebp, ebx
+  test byte[ebp - 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
-  and byte[fieldAddr + ebx], al
+  and byte[ebp], al
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
-  or byte[fieldAddr + ebx - 1], FIELD_AGENT_STATE
+  or byte[ebp - 1], FIELD_AGENT_STATE
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
