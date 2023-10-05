@@ -5,7 +5,7 @@ section '.data' data readable writeable
   HeapHandle dd ?
   TotalAllocSize dd ?
   ; field data
-  fieldSize dd 4
+  fieldSize dd 1024
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -18,10 +18,10 @@ section '.data' data readable writeable
   AGENT_CURR_INSTR_OFFSET = 10 ; 2B
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
-  AGENT_MAX_INSTRUCTIONS_N = 8 ; +1 instruction
+  AGENT_MAX_INSTRUCTIONS_N = 8 ; 
   AgentInitEnergy = 25
-  TasksAmount dd 5
-  AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 ; there will be pointers to instruction functions
+  TasksAmount dd 3
+  AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
@@ -46,7 +46,7 @@ proc start
   ; assuming that maximum amount of agents is n * n/2, for food same
   mov eax, [fieldSize]
   mul [fieldSize]
-  shr eax, 1
+  ; shr eax, 1
 
   ; saving capacity
   mov [FoodCapacity], eax
@@ -68,7 +68,7 @@ proc start
   ; calculating FoodAddr
   mov eax, [fieldSize]
   mul [fieldSize]
-  shr eax, 1
+  ; shr eax, 1
   mul [AgentRecSize]
   add ebx, eax
   mov [FoodAddr], ebx 
@@ -277,10 +277,10 @@ proc fillField
   loopStart:
     rdrand ax
     
-    cmp al, 128
-    jb EmptyCell
-    cmp al, 200
-    jb Food
+    ; cmp al, 128
+    ; jb EmptyCell
+    ; cmp al, 200
+    ; jb Food
     jmp Agent
   
     EmptyCell:
@@ -341,7 +341,10 @@ proc fillField
       mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
       mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
       mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
-      stdcall RandInt, AGENT_MAX_INSTRUCTIONS_N
+
+      mov eax, AGENT_MAX_INSTRUCTIONS_N ; used to not have 0 instructions
+      dec eax
+      stdcall RandInt, eax
       inc ax
       mov word[edi + AGENT_INSTR_NUM_OFFSET], ax 
       push ecx
