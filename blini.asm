@@ -5,7 +5,7 @@ section '.data' data readable writeable
   HeapHandle dd ?
   TotalAllocSize dd ?
   ; field data
-  fieldSize dd 1024
+  fieldSize dd 512
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -20,7 +20,7 @@ section '.data' data readable writeable
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
   AgentInitEnergy = 25
-  TasksAmount dd 3
+  TasksAmount dd 4
   AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
   AgentsCapacity dd ?
   AgentsSize dd 0
@@ -132,6 +132,7 @@ endp
 proc AgentMoveTop uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
+  mov ebx, eax
   mul [AgentRecSize]
   add esi, eax
 
@@ -145,7 +146,11 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
-
+  
+  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  jnz @F
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+  @@:
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
@@ -162,9 +167,11 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   
   ret
 endp
+
 proc AgentMoveDown uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
+  mov ebx, eax
   mul [AgentRecSize]
   add esi, eax
 
@@ -180,6 +187,11 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
+
+  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  jnz @F
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+  @@:
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
@@ -197,6 +209,7 @@ endp
 proc AgentMoveRight uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
+  mov ebx, eax
   mul [AgentRecSize]
   add esi, eax
 
@@ -214,6 +227,11 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   test byte[ebp + 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
+  test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
+  jnz @F
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+  @@:
+
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
@@ -230,6 +248,7 @@ endp
 proc AgentMoveLeft uses esi edi ebx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
+  mov ebx, eax
   mul [AgentRecSize]
   add esi, eax
 
@@ -245,6 +264,12 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp - 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
+
+
+  test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
+  jnz @F
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+  @@:
 
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
@@ -265,6 +290,42 @@ proc AgentSleep, ind
 endp
 
 
+proc FeedAgent uses ecx esi edi ebx, AgentI, coords
+  mov ecx, [FoodSize]
+  xor esi, esi
+  FindFoodEl:
+      mov edi, [FoodAddr]
+      mov eax, esi
+      mul dword[FoodRecSize]
+      add edi, eax ; got curr food addr
+      
+      mov eax, [edi + FOOD_COORDS_OFFSET]
+      cmp eax, [coords] ; checking did we got to correct record
+      je FoundEl
+
+    inc esi
+  loop FindFoodEl
+  jmp FoundEl.Exit ; not found food, skipping all stuff
+  
+  FoundEl:
+    ; getting food amount
+    mov ebx, [edi + FOOD_AMOUNT_OFFSET] ; in edi already have addr of curr food       
+    
+    ; getting agents addr
+    mov edi, [AgentsAddr]
+    mov eax, [AgentI]
+    mul dword[AgentRecSize] 
+    add edi, eax
+
+    add word [edi + AGENT_ENERGY_OFFSET], bx
+
+    stdcall removeVecItem, [FoodAddr], FoodSize, [FoodRecSize], FOOD_COORDS_OFFSET, esi
+
+  .Exit:
+
+  ret
+endp
+
 ; generates field with food, with agents and so on
 proc fillField
   ; get emount of cells to generate
@@ -277,10 +338,10 @@ proc fillField
   loopStart:
     rdrand ax
     
-    ; cmp al, 128
-    ; jb EmptyCell
-    ; cmp al, 200
-    ; jb Food
+    cmp al, 128
+    jb EmptyCell
+    cmp al, 200
+    jb Food
     jmp Agent
   
     EmptyCell:
