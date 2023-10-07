@@ -2,10 +2,14 @@ format PE GUI 4.0
 entry start
 
 section '.data' data readable writeable
+  ; Game stuff
+  TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
+
+  
   ; field data
-  fieldSize dd 512
+  fieldSize dd 1024
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -20,7 +24,7 @@ section '.data' data readable writeable
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
   AgentInitEnergy = 25
-  TasksAmount dd 4
+  TasksMaxI dd 3
   AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
   AgentsCapacity dd ?
   AgentsSize dd 0
@@ -35,8 +39,11 @@ section '.data' data readable writeable
   FoodSize dd 0
   FoodAddr dd ?
 
+
   allocFailedMsg db 'allocation failed', 0
-  deathMsg db 'Everyone died', 0
+  deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
+  deathMsg2 db 'Everyone died', 0
+  
 
 section '.text' code readable executable
   include 'win32a.inc'
@@ -75,15 +82,84 @@ proc start
 
   stdcall fillField
 
+  push [FoodSize]
+  push [AgentsSize]
+
   stdcall startGame
 
-  invoke MessageBox, 0, allocFailedMsg, deathMsg, MB_OK
+
+; just to print total number of tacts
+    xor edx, edx
+    mov ebx, 10
+    mov eax, ebp
+    xor edi, edi
+    mov esi, deathMsg
+    
+
+    xor ecx, ecx
+    @@:
+
+        inc ecx
+        inc esi
+
+        div ebx
+        add edx, '0'
+        mov [esi], edx
+        xor edx, edx
+    
+
+        cmp eax, 0
+        
+    jnz @b
+
+    inc esi
+    mov dword[esi], ' '
+    pop eax
+    
+
+    xor ecx, ecx
+    @@:
+
+        inc ecx
+        inc esi
+
+        div ebx
+        add edx, '0'
+        mov [esi], edx
+        xor edx, edx
+    
+
+        cmp eax, 0
+        
+    jnz @b
+
+inc esi
+    mov dword[esi], ' '
+    pop eax
+    
+
+    xor ecx, ecx
+    @@:
+
+        inc ecx
+        inc esi
+
+        div ebx
+        add edx, '0'
+        mov [esi], edx
+        xor edx, edx
+    
+
+        cmp eax, 0
+        
+    jnz @b
+  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
   ; cleaning up
   invoke HeapFree, [HeapHandle], 0, [fieldAddr]
   invoke ExitProcess, 0
   ret
 endp
- 
+
 proc startGame
   xor ebp, ebp ; tact counter
 
@@ -125,6 +201,7 @@ proc startGame
     jmp gameLoop
 
   GameOver:
+  mov [TotalTacts], ebp
   ret
 endp
 
@@ -147,10 +224,6 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
   
-  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
-  jnz @F
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
-  @@:
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
@@ -161,6 +234,10 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   
   ; edi is already negative
   or byte[ebp + edi], FIELD_AGENT_STATE
+
+  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  jz .decrEnergy
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -188,17 +265,16 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
-  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
-  jnz @F
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
-  @@:
-
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
   or byte[ebp + edi], FIELD_AGENT_STATE
+
+  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  jz .decrEnergy
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -227,17 +303,16 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   test byte[ebp + 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
-  test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
-  jnz @F
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
-  @@:
-
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
   or byte[ebp + 1], FIELD_AGENT_STATE
+
+  test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
+  jz .decrEnergy
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -252,7 +327,7 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
   mul [AgentRecSize]
   add esi, eax
 
-  
+
   mov eax, [esi + AGENT_COORDS_OFFSET]
   xor edx, edx
   div [fieldSize]
@@ -265,18 +340,16 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
   test byte[ebp - 1], FIELD_AGENT_STATE
   jnz .decrEnergy ; cell is busy
 
-
-  test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
-  jnz @F
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
-  @@:
-
   mov ebx, [esi + AGENT_COORDS_OFFSET]
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
   or byte[ebp - 1], FIELD_AGENT_STATE
+
+  test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
+  jz .decrEnergy
+    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
@@ -412,7 +485,7 @@ proc fillField
       mov ecx, eax
       xor ebp, ebp ; curr instruction
       RandInstruction:
-        stdcall RandInt, [TasksAmount]
+        stdcall RandInt, [TasksMaxI]
         mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
         inc ebp
       loop RandInstruction
