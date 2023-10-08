@@ -23,7 +23,7 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 25
+  AgentInitEnergy = 150
   TasksMaxI dd 3
   AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
   AgentsCapacity dd ?
@@ -168,12 +168,9 @@ proc startGame
     cmp ecx, 0
     jle GameOver ; all agents died
     xor esi, esi
+    mov edi, [AgentsAddr]
     AgentsVecLoop:
-      mov edi, [AgentsAddr]
-      mov eax, esi
-      mul dword[AgentRecSize] 
-      add edi, eax ; got current agent addr
-
+      
       ; CHECK ROBOT ENERGY
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
@@ -195,6 +192,7 @@ proc startGame
       mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
       Continue:
+        add edi, [AgentRecSize]
         inc esi
       loop AgentsVecLoop
       inc ebp
@@ -408,10 +406,10 @@ proc fillField
   loopStart:
     rdrand ax
     
-    cmp al, 128
-    jb EmptyCell
     cmp al, 200
-    jb Food
+    jb EmptyCell
+    ; cmp al, 200
+    ; jb Food
     jmp Agent
   
     EmptyCell:
