@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 1024
+  fieldSize dd 2048
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -366,16 +366,13 @@ endp
 proc FeedAgent uses ecx esi edi ebx, AgentI, coords
   mov ecx, [FoodSize]
   xor esi, esi
-  FindFoodEl:
-      mov edi, [FoodAddr]
-      mov eax, esi
-      mul dword[FoodRecSize]
-      add edi, eax ; got curr food addr
-      
-      mov eax, [edi + FOOD_COORDS_OFFSET]
-      cmp eax, [coords] ; checking did we got to correct record
-      je FoundEl
+  mov edi, [FoodAddr]
+  FindFoodEl:     
+    mov eax, [edi + FOOD_COORDS_OFFSET]
+    cmp eax, [coords] ; checking did we got to correct record
+    je FoundEl      
 
+    add edi, [FoodRecSize]
     inc esi
   loop FindFoodEl
   jmp FoundEl.Exit ; not found food, skipping all stuff
