@@ -29,6 +29,8 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   ; edi is already negative
   or byte[ebp + edi], FIELD_AGENT_STATE
 
+  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+
   test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
   jz .decrEnergy
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
@@ -65,6 +67,8 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   and byte[ebp], al
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
   or byte[ebp + edi], FIELD_AGENT_STATE
+
+  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
 
   test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
   jz .decrEnergy
@@ -104,6 +108,8 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
   or byte[ebp + 1], FIELD_AGENT_STATE
 
+  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+
   test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
   jz .decrEnergy
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
@@ -141,18 +147,26 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
   or byte[ebp - 1], FIELD_AGENT_STATE
 
+  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+
   test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
   jz .decrEnergy
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
-
   .decrEnergy:
   dec word[esi + AGENT_ENERGY_OFFSET]
   
+
   ret
 endp
 
 proc AgentSleep, ind
-
+  mov esi, [AgentsAddr]
+  mov eax, [ind]
+  mov ebx, eax
+  mul [AgentRecSize]
+  add esi, eax
+  .decrEnergy:
+  dec word[esi + AGENT_ENERGY_OFFSET]
   ret
 endp
 

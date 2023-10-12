@@ -3,3 +3,4 @@
 *.out
 *.run
 main.py
+server*

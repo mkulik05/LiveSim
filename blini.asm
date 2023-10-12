@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 48
+  fieldSize dd 256
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -23,18 +23,19 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 150
+  AgentInitEnergy = 350
   TasksMaxI dd 3
   AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
+  AgentEnergyToMove = 20
     
   ; food info
   FoodRecSize dd 6
   FOOD_COORDS_OFFSET = 0 ; 4B
   FOOD_AMOUNT_OFFSET = 4 ; 2B
-  FoodMaxAmount dd 50
+  FoodMaxAmount dd 500
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
