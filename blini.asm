@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 4
+  fieldSize dd 1024
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -39,7 +39,7 @@ section '.data' data readable writeable
   FoodRecSize dd 6
   FOOD_COORDS_OFFSET = 0 ; 4B
   FOOD_AMOUNT_OFFSET = 4 ; 2B
-  FoodMaxAmount dd 500
+  FoodMaxAmount dd 200
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
