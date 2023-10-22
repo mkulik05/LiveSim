@@ -76,7 +76,8 @@ proc fillField
       mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
       mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
-      mov eax, AGENT_MAX_INSTRUCTIONS_N ; used to not have 0 instructions
+      mov eax, AGENT_MAX_INSTRUCTIONS_N 
+      ; used to not have 0 instructions
       dec eax
       stdcall RandInt, eax
       inc ax
@@ -85,14 +86,13 @@ proc fillField
       mov ecx, eax
       xor ebp, ebp ; curr instruction
       RandInstruction:
-        stdcall RandInt, [TasksMaxI]
+        stdcall RandInt, [AgentTaskMaxInd]
         mov byte[ebp + edi + AGENT_INSTR_VEC_OFFSET], al
         inc ebp
       loop RandInstruction
       pop ecx
 
       inc dword[AgentsSize]
-      jmp @F
     
   @@:
     add ebx, 1
@@ -101,5 +101,7 @@ proc fillField
     jz stopLoop
     jmp loopStart 
   stopLoop:
+  mov eax, [AgentsSize]
+  mov [AgentNextIndex], eax
   ret  
 endp

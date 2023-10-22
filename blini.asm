@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 256
+  fieldSize dd 4
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -23,13 +23,17 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 350
-  TasksMaxI dd 3
-  AgentTasks dd AgentMoveTop, AgentMoveDown, AgentMoveLeft, AgentMoveRight, AgentSleep, 6 
+  AgentInitEnergy = 21
+  AgentTaskMaxInd dd 3
+  AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 6 
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove = 20
+  AgentEnergyToClone = 100
+  AgentMinEnergyToClone = 400
+  AgentNextIndex dd 0
+  AgentMutationOdds dd 10 ; in percents
     
   ; food info
   FoodRecSize dd 6
@@ -48,9 +52,6 @@ section '.data' data readable writeable
 
 section '.text' code readable executable
   include 'win32a.inc'
-  include 'field.asm'
-  include 'assistive.asm'
-  include 'agents.asm'
 
 proc start
   stdcall getFieldSize, [fieldSize] ; got field size
@@ -165,6 +166,12 @@ inc esi
   ret
 endp
 
+
+  include 'field.asm'
+  include 'assistive.asm'
+  include 'agents.asm'
+
+
 proc startGame
   xor ebp, ebp ; tact counter
 
@@ -180,27 +187,60 @@ proc startGame
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
       jg @F
+        mov eax, [AgentRecSize]
+        mul esi
+        mov ebx, eax
+        xor byte[ebx + edi], FIELD_AGENT_STATE
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
         dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
-        jmp Continue
+        sub edi, [AgentRecSize] ; same as esi
+        jmp NextAgent
       @@:
-      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B)
-      movzx ebx, byte[edi + ebx + AGENT_INSTR_VEC_OFFSET] ; got instruction index (in array of functions to call)
-      stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
 
-      ; switch to next instruction
-      inc word[edi + AGENT_CURR_INSTR_OFFSET]
-      movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
-      cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET] ; if instr i < MAX_I - continut
-      jb Continue
-      jl Continue
-      mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
+      ; cmp eax, AgentMinEnergyToClone
+      ; jb ContinueExecution
 
-      Continue:
-        add edi, [AgentRecSize]
-        inc esi
-      loop AgentsVecLoop
-      inc ebp
+      ; ; cloning agent
+      ; stdcall AgentClone, esi
+      ; jmp NextAgent
+
+      ContinueExecution: 
+        dec word[edi + AGENT_ENERGY_OFFSET] ; decrementing energy
+        movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET] ; got curr instruction(2B)
+        movzx ebx, byte[edi + ebx + AGENT_INSTR_VEC_OFFSET] ; got instruction index (in array of functions to call)
+        
+        ; checking is it move instruction
+        cmp ebx, 4
+        jge @F
+        ; checking does agent has enough energy to move
+        cmp word[edi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+        jge @F
+        ; if not - skipping move
+        jmp skipMove
+        @@:
+        stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
+        skipMove:
+
+        ; switch to next instruction
+        inc word[edi + AGENT_CURR_INSTR_OFFSET]
+        movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
+        cmp bx, word[edi + AGENT_INSTR_NUM_OFFSET] ; if instr i < MAX_I - continut
+        jb NextAgent
+        jl NextAgent
+        mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
+
+        NextAgent:
+          add edi, [AgentRecSize]
+          inc esi
+
+        dec ecx
+        cmp ecx, 0
+        je .stopAgentLoop
+        jmp AgentsVecLoop
+
+        .stopAgentLoop:
+
+        inc ebp
     jmp gameLoop
 
   GameOver:

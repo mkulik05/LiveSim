@@ -59,8 +59,8 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
     mov esi, [edi + ebx] ; coords of item
     mov ebx, [fieldAddr]
 
-    ; NEED TO BE FIXED IN THE FUTURE
-    mov byte[ebx + esi], 0 ; clear game field
+    ; ; NEED TO BE FIXED IN THE FUTURE
+    ; mov byte[ebx + esi], 0 ; clear game field
     
     mov eax, [PSize]
     mov eax, [eax]
