@@ -201,61 +201,97 @@ endp
 proc AgentClone uses ecx esi edi ebx edx, ind
   ; getting agent addr in agents vector
   mov esi, [AgentsAddr]
-  mov eax, [ind]
-  ; mov ebx, eax
+  mov eax, [ebp + 8]
+
   mul [AgentRecSize]
   add esi, eax
+  
+  xor ebx, ebx ; amount of possibles directions in stack
 
   ; move clone to TOP
   ; edi will store new agent coords
   mov edi, [esi + AGENT_COORDS_OFFSET]
   sub edi, [fieldSize]
   cmp edi, 0
-  jge checkIsCellEmpty
+
+  
+  jl @F
+    inc ebx
+    push edi ; save coords to check
+  @@:
 
   ; move clone to RIGHT
   mov edi, [esi + AGENT_COORDS_OFFSET]
-  inc edi
   mov eax, edi 
   add eax, 1
   xor edx, edx
   div [fieldSize]
   cmp edx, 0
-  jne checkIsCellEmpty
+  jz @F ; skip if in right border
+    inc edi
+    inc ebx
+    push edi ; save coords to check
+  @@:
+
 
   ; move clone to BOTTOM
   mov edi, [esi + AGENT_COORDS_OFFSET]
   add edi, [fieldSize]
   stdcall getFieldSize, [fieldSize]
   cmp edi, eax
-  jl checkIsCellEmpty
+  jae @F
+    inc ebx
+    push edi ; save coords to check
+  @@:
+
 
   ; move clone to LEFT
   mov edi, [esi + AGENT_COORDS_OFFSET]
-  dec edi
   xor edx, edx
+  mov eax, edi
   div [fieldSize]
   cmp edx, 0
-  jne checkIsCellEmpty
+  jz @F ; it's in left column, skipping
+    dec edi
+    inc ebx
+    push edi ; save coords to check
+    mov ecx, ebx
+    jmp checkIsCellEmpty
+  @@:
+    cmp ebx, 0
+    je TerminateCloning ; rejected cloning (no space to move clone to)
   
-  jmp TerminateCloning ; rejected cloning (no space to move clone to)
-
+  mov ecx, ebx
   checkIsCellEmpty:
+    pop edi
     mov ebx, [fieldAddr]
-    movzx eax, byte[ebx + edi]
-    xor eax, FIELD_AGENT_STATE
-    cmp eax, 0
-    je .StartCloning
-    jmp TerminateCloning
+    test byte[ebx + edi], FIELD_AGENT_STATE
+    jz .FoundPlace
+    jmp @F
+    .FoundPlace:
+      dec ecx
+      cmp ecx, 0
+      je .StartCloning ; if there were only one coords, they are already extracted
+      .ExtractAll:
+        pop eax ; getting other coords from stack (deleting just)
+      loop .ExtractAll
+      jmp .StartCloning
+    @@:  
+  loop checkIsCellEmpty
 
 
   .StartCloning:  
-  ; edi stores coords of new agent 
+    sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
+    
+    ; edi stores coords of new agent 
     mov eax, [AgentsSize]
     cmp eax, [AgentsCapacity]
     jae TerminateCloning ; not enough space for new agent
     
     mov ebx, [fieldAddr]
+    add ebx, [esi + AGENT_COORDS_OFFSET]
+    xor byte[ebx], FIELD_AGENT_STATE ; clear old cell
+    sub ebx, [esi + AGENT_COORDS_OFFSET]
     or byte[ebx + edi], FIELD_AGENT_STATE ; updated new cell
     
     ; updating agent energy (it will be splitted between it and clone)
@@ -273,7 +309,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     add edi, eax      ; got new agent address
     
     mov ecx, [AgentRecSize]
-    movsb ; copying agent data
+    cld
+    rep movsb ; copying agent data
 
     sub edi, [AgentRecSize] ; got new agent addr back
     mov eax, [AgentNextIndex]
@@ -304,7 +341,5 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     inc [AgentNextIndex]
     inc [AgentsSize]
   TerminateCloning:
-    sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
-
   ret
 endp

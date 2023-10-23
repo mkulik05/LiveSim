@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 1024
+  fieldSize dd 512
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -23,7 +23,7 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 21
+  AgentInitEnergy = 350
   AgentTaskMaxInd dd 3
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 6 
   AgentsCapacity dd ?
@@ -187,22 +187,23 @@ proc startGame
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
       jg @F
-        mov eax, [AgentRecSize]
-        mul esi
-        mov ebx, eax
+        mov ebx, [fieldAddr]
+        push edi 
+        mov edi, [edi + AGENT_COORDS_OFFSET]
         xor byte[ebx + edi], FIELD_AGENT_STATE
+        pop edi
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
         dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
         sub edi, [AgentRecSize] ; same as esi
         jmp NextAgent
       @@:
 
-      ; cmp eax, AgentMinEnergyToClone
-      ; jb ContinueExecution
+      cmp eax, AgentMinEnergyToClone
+      jb ContinueExecution
 
-      ; ; cloning agent
-      ; stdcall AgentClone, esi
-      ; jmp NextAgent
+      ; cloning agent
+      stdcall AgentClone, esi
+      jmp NextAgent
 
       ContinueExecution: 
         dec word[edi + AGENT_ENERGY_OFFSET] ; decrementing energy
