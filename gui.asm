@@ -1,6 +1,5 @@
 ; Settings
-  Width = 1600
-  Height = 700
+
   R = 0
   G = 0
   B = 0
@@ -16,21 +15,28 @@ section '.data' data readable writeable
   _title TCHAR 'GDI32 Test', 0
   _error TCHAR 'Startup failed.', 0
 
-  wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
 
+  wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
   msg MSG
   hDC dd 0
   hwnd dd 0
   bmi BITMAPINFOHEADER
 
-  ; Define the variables for heap memory allocation
   heapHandle dd 0
   heapMemory dd 0
-  heapSize dd Width * Height * 4 ; 4 bytes per pixel (32-bit)
+  heapSize dd 0 ; 4 bytes per pixel (32-bit)
+  ScreenWidth dd 0
+  ScreenHeight dd 0
 
 section '.text' code readable executable
 
 proc start
+  invoke GetSystemMetrics, SM_CXSCREEN
+  mov [ScreenWidth], eax
+
+  invoke GetSystemMetrics, SM_CYSCREEN
+  mov [ScreenHeight], eax
+
   invoke GetModuleHandle, 0
   mov [wc.hInstance], eax
   invoke LoadIcon, 0, IDI_APPLICATION
@@ -41,13 +47,16 @@ proc start
   test eax, eax
   jz error
 
-  invoke CreateWindowEx, 0, _class, _title, WS_VISIBLE + WS_DLGFRAME + WS_SYSMENU, 128, 128, 1600, 700, NULL, NULL, [wc.hInstance], NULL
+  invoke CreateWindowEx, 0, _class, 0, WS_VISIBLE + WS_POPUP, 0, 0, [ScreenWidth], [ScreenHeight], NULL, NULL, [wc.hInstance], NULL
+  
   mov [hwnd], eax
   invoke GetDC, [hwnd]
   mov [hDC], eax
   mov [bmi.biSize], sizeof.BITMAPINFOHEADER
-  mov [bmi.biWidth], Width
-  mov [bmi.biHeight], Height
+  mov eax, [ScreenWidth]
+  mov [bmi.biWidth], eax
+  mov eax, [ScreenHeight]
+  mov [bmi.biHeight], eax
   mov [bmi.biPlanes], 1
   mov [bmi.biBitCount], 32
   mov [bmi.biCompression], BI_RGB
@@ -57,6 +66,10 @@ proc start
   invoke GetProcessHeap
   mov [heapHandle], eax
 
+  mov eax, [ScreenWidth]
+  mul [ScreenHeight]
+  shl eax, 2
+  mov [heapSize], eax 
   invoke HeapAlloc, [heapHandle], HEAP_ZERO_MEMORY, [heapSize]
   test eax, eax
   jz error
@@ -64,7 +77,9 @@ proc start
   mov [heapMemory], eax
 
   mov edi, [heapMemory]
-  mov ecx, Width * Height
+  mov eax, [ScreenWidth]
+  mul [ScreenHeight]
+  mov ecx, eax
   mov eax, (B shl 16) + (G shl 8) + R
   rep stosd
 
@@ -81,7 +96,7 @@ proc start
     
     invoke TranslateMessage, msg
     invoke DispatchMessage, msg
-    invoke SetDIBitsToDevice, [hDC], 0, 0, Width, Height, 0, 0, 0, Height, [heapMemory], bmi, 0
+    invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [heapMemory], bmi, 0
     jmp msg_loop
 
   error:
@@ -96,7 +111,8 @@ proc start
 
 proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
   mov ecx, [height]
-  mov eax, Width * 4
+  mov eax, [ScreenWidth]
+  shl eax, 2
   mul [y]
   mov edi, [buffer]
   add edi, eax
@@ -116,7 +132,9 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
           mov ebx, [width]
           shl ebx, 2
           sub edi, ebx
-          add edi, Width * 4
+          mov ebx, [ScreenWidth]
+          shl ebx, 2
+          add edi, ebx
 
       pop ecx
   loop rectangleLoop
