@@ -9,7 +9,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 512
+  fieldSize dd 4
   fieldCellSize dd 1
   fieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -43,6 +43,8 @@ section '.data' data readable writeable
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
+  BeforeFoodSpawn dd ?
+  FoodSpawnAmount
 
 
   allocFailedMsg db 'allocation failed', 0
@@ -203,6 +205,8 @@ proc startGame
 
       ; cloning agent
       stdcall AgentClone, esi
+      ;   WTF
+      ; inc ecx ; so new agent will go too
       jmp NextAgent
 
       ContinueExecution: 
