@@ -1,36 +1,6 @@
-; Settings
+proc GUIBasicInit
 
-  R = 0
-  G = 0
-  B = 0
-
-; Code
-format PE GUI 4.0
-entry start
-
-include 'win32w.inc'
-
-section '.data' data readable writeable
-  _class TCHAR 'FASMWIN32', 0
-  _title TCHAR 'GDI32 Test', 0
-  _error TCHAR 'Startup failed.', 0
-
-
-  wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
-  msg MSG
-  hDC dd 0
-  hwnd dd 0
-  bmi BITMAPINFOHEADER
-
-  heapHandle dd 0
-  heapMemory dd 0
-  heapSize dd 0 ; 4 bytes per pixel (32-bit)
-  ScreenWidth dd 0
-  ScreenHeight dd 0
-
-section '.text' code readable executable
-
-proc start
+  ; getting screen X size and Y
   invoke GetSystemMetrics, SM_CXSCREEN
   mov [ScreenWidth], eax
 
@@ -61,53 +31,40 @@ proc start
   mov [bmi.biBitCount], 32
   mov [bmi.biCompression], BI_RGB
 
-  mov [heapHandle], 0
+  ; stdcall DrawRect, [heapMemory], 200, 200, 300, 800, 0x00F09F00
+  ; stdcall DrawRect, [heapMemory], 200, 200, 200, 700, 0x00FF1911
+  ; stdcall DrawRect, [heapMemory], 150, 150, 200, 500, 0x00000000
 
-  invoke GetProcessHeap
-  mov [heapHandle], eax
+  ret 
+  endp
 
-  mov eax, [ScreenWidth]
-  mul [ScreenHeight]
-  shl eax, 2
-  mov [heapSize], eax 
-  invoke HeapAlloc, [heapHandle], HEAP_ZERO_MEMORY, [heapSize]
-  test eax, eax
-  jz error
-
-  mov [heapMemory], eax
-
-  mov edi, [heapMemory]
-  mov eax, [ScreenWidth]
-  mul [ScreenHeight]
-  mov ecx, eax
-  mov eax, (B shl 16) + (G shl 8) + R
-  rep stosd
-
-  stdcall DrawRect, [heapMemory], 200, 200, 300, 800, 0x00F09F00
-  stdcall DrawRect, [heapMemory], 200, 200, 200, 700, 0x00FF1911
-  stdcall DrawRect, [heapMemory], 150, 150, 200, 500, 0x00000000
-
-
-  msg_loop:
-    invoke GetMessage, msg, NULL, 0, 0
-    cmp eax, 1
-    jb end_loop
-    jne msg_loop
-    
-    invoke TranslateMessage, msg
-    invoke DispatchMessage, msg
-    invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [heapMemory], bmi, 0
-    jmp msg_loop
+proc ProcessWindowMsgs
+  invoke GetMessage, msg, NULL, 0, 0
+  cmp eax, 1
+  jb end_loop
+  ret
+  
+  invoke TranslateMessage, msg
+  invoke DispatchMessage, msg
+  invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
 
   error:
     invoke MessageBox, NULL, _error, NULL, MB_ICONERROR + MB_OK
 
   end_loop:
-    invoke HeapFree, [heapHandle], 0, [heapMemory]
-
-    invoke ExitProcess, [msg.wParam]
+    mov [StopGame], 1
   ret 
   endp
+
+proc drawBkg
+  mov edi, [ScreenBufAddr]
+  mov eax, [ScreenWidth]
+  mul [ScreenHeight]
+  mov ecx, eax
+  mov eax, 0xFFFFFFFF
+  rep stosd
+  ret
+endp
 
 proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
   mov ecx, [height]
@@ -155,12 +112,3 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   .finish:
   ret
 endp
-
-section '.idata' import data readable writeable
-  library kernel32, 'KERNEL32.DLL', \
-    gdi32, 'GDI32.DLL', \
-    user32, 'USER32.DLL'
-
-  include 'api\kernel32.inc'
-  include 'api\gdi32.inc'
-  include 'api\user32.inc'

@@ -1,11 +1,13 @@
 format PE GUI 4.0
 entry start
 
+include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
   TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
+  StopGame dd 0
 
   
   ; field data
@@ -43,17 +45,24 @@ section '.data' data readable writeable
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
-  BeforeFoodSpawn dd ?
-  FoodSpawnAmount
 
-
+  ; GUI stuff
+  _class TCHAR 'FASMWIN32', 0
+  _error TCHAR 'Startup failed.', 0
+  wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
+  hDC dd 0
+  hwnd dd 0
+  bmi BITMAPINFOHEADER
+  msg MSG
+  ScreenBufAddr dd 0
+  ScreenWidth dd 0
+  ScreenHeight dd 0
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0
   
 
 section '.text' code readable executable
-  include 'win32a.inc'
 
 proc start
   stdcall getFieldSize, [fieldSize] ; got field size
@@ -67,11 +76,19 @@ proc start
   mov [FoodCapacity], eax
   mov [AgentsCapacity], eax
 
+  stdcall GUIBasicInit
+
   ; getting amount of bytes
   mov edx, [AgentRecSize]
   add edx, [FoodRecSize]
   mul edx ; got size for agents, food
   add [TotalAllocSize], eax ; total size
+
+  ; getting amount of bytes for screen buffer
+  mov eax, [ScreenWidth]
+  mul [ScreenHeight]
+  shl eax, 2
+  add [TotalAllocSize], eax
   stdcall allocMem, [TotalAllocSize], HeapHandle, fieldAddr
 
   ; calculating AgentsAddr
@@ -83,18 +100,24 @@ proc start
   ; calculating FoodAddr
   mov eax, [fieldSize]
   mul [fieldSize]
-  ; shr eax, 1
   mul [AgentRecSize]
   add ebx, eax
   mov [FoodAddr], ebx 
+
+  ; calculating Screen buf size
+  mov eax, [FoodSize]
+  mul [FoodCapacity] 
+  add ebx, eax
+  mov [ScreenBufAddr], ebx
 
   stdcall fillField
 
   push [FoodSize]
   push [AgentsSize]
 
-  stdcall startGame
 
+  stdcall drawBkg
+  stdcall startGame
 
 ; just to print total number of tacts
     xor edx, edx
@@ -172,12 +195,14 @@ endp
   include 'field.asm'
   include 'assistive.asm'
   include 'agents.asm'
+  include 'gui.asm'
 
 
 proc startGame
   xor ebp, ebp ; tact counter
 
   gameLoop:
+    stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
     cmp ecx, 0
     jle GameOver ; all agents died
@@ -246,6 +271,8 @@ proc startGame
         .stopAgentLoop:
 
         inc ebp
+      cmp [StopGame], 1
+      je GameOver
     jmp gameLoop
 
   GameOver:
@@ -256,7 +283,9 @@ endp
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL',\
+          gdi32, 'GDI32.DLL', \
           user32, 'USER32.DLL'
+          
 
   import kernel32,\
          GetProcessHeap, 'GetProcessHeap',\
@@ -265,7 +294,21 @@ section '.idata' import data readable writeable
          ExitProcess, 'ExitProcess',\
          wsprintf, 'wsprintfA',\
          msvcrt, 'msvcrt.dll',\
+         GetModuleHandle, 'GetModuleHandleA', \
          GetTickCount, 'GetTickCount'
 
   import user32,\
-         MessageBox, 'MessageBoxA'
+         MessageBox, 'MessageBoxA', \
+         GetSystemMetrics, 'GetSystemMetrics', \
+         LoadIcon, 'LoadIconA', \
+         LoadCursor, 'LoadCursorA', \
+         RegisterClass, 'RegisterClassA', \
+         CreateWindowEx, 'CreateWindowExA', \
+         GetDC, 'GetDC', \
+         GetMessage, 'GetMessageA', \
+         TranslateMessage, 'TranslateMessage', \
+         DispatchMessage, 'DispatchMessageA', \
+         DefWindowProc, 'DefWindowProcA', \
+         PostQuitMessage, 'PostQuitMessage'
+  import gdi32,\
+         SetDIBitsToDevice, 'SetDIBitsToDevice'
