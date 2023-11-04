@@ -11,9 +11,9 @@ section '.data' data readable writeable
 
   
   ; field data
-  fieldSize dd 4
-  fieldCellSize dd 1
-  fieldAddr dd ?
+  FieldSize dd 1079
+  FieldCellSize dd 1
+  FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
   FIELD_FOOD_STATE = 1000_0000b
 
@@ -25,7 +25,7 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 350
+  AgentInitEnergy = 100
   AgentTaskMaxInd dd 3
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 6 
   AgentsCapacity dd ?
@@ -57,6 +57,9 @@ section '.data' data readable writeable
   ScreenBufAddr dd 0
   ScreenWidth dd 0
   ScreenHeight dd 0
+  CellSizePX dd 0
+  XFieldOffset dd 0
+  YFieldOffset dd 0
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0
@@ -65,18 +68,20 @@ section '.data' data readable writeable
 section '.text' code readable executable
 
 proc start
-  stdcall getFieldSize, [fieldSize] ; got field size
+  stdcall getFieldSize, [FieldSize] ; got field size
   mov [TotalAllocSize], eax
   ; assuming that maximum amount of agents is n * n/2, for food same
-  mov eax, [fieldSize]
-  mul [fieldSize]
+  mov eax, [FieldSize]
+  mul [FieldSize]
   ; shr eax, 1
 
   ; saving capacity
   mov [FoodCapacity], eax
   mov [AgentsCapacity], eax
 
+  push eax
   stdcall GUIBasicInit
+  pop eax
 
   ; getting amount of bytes
   mov edx, [AgentRecSize]
@@ -89,24 +94,24 @@ proc start
   mul [ScreenHeight]
   shl eax, 2
   add [TotalAllocSize], eax
-  stdcall allocMem, [TotalAllocSize], HeapHandle, fieldAddr
+
+  stdcall allocMem, [TotalAllocSize], HeapHandle, FieldAddr
 
   ; calculating AgentsAddr
-  mov ebx, [fieldAddr]
-  stdcall getFieldSize, [fieldSize]
+  mov ebx, [FieldAddr]
+  stdcall getFieldSize, [FieldSize]
   add ebx, eax
   mov [AgentsAddr], ebx
 
   ; calculating FoodAddr
-  mov eax, [fieldSize]
-  mul [fieldSize]
+  mov eax, [AgentsCapacity]
   mul [AgentRecSize]
   add ebx, eax
   mov [FoodAddr], ebx 
 
   ; calculating Screen buf size
-  mov eax, [FoodSize]
-  mul [FoodCapacity] 
+  mov eax, [FoodCapacity]
+  mul [FoodRecSize] 
   add ebx, eax
   mov [ScreenBufAddr], ebx
 
@@ -117,6 +122,9 @@ proc start
 
 
   stdcall drawBkg
+  stdcall calcCellSize ; will put result into CellSizePX constant
+  stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
+  stdcall drawField
   stdcall startGame
 
 ; just to print total number of tacts
@@ -186,7 +194,7 @@ inc esi
     jnz @b
   invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
   ; cleaning up
-  invoke HeapFree, [HeapHandle], 0, [fieldAddr]
+  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
   invoke ExitProcess, 0
   ret
 endp
@@ -214,7 +222,7 @@ proc startGame
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
       jg @F
-        mov ebx, [fieldAddr]
+        mov ebx, [FieldAddr]
         push edi 
         mov edi, [edi + AGENT_COORDS_OFFSET]
         xor byte[ebx + edi], FIELD_AGENT_STATE

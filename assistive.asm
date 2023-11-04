@@ -19,7 +19,7 @@ endp
 proc getFieldSize, size
   mov eax, [size]
   mul eax
-  mul [fieldCellSize]
+  mul [FieldCellSize]
   ret
 endp
 
@@ -57,7 +57,7 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
 
     mov ebx, [CoordsOffset]
     mov esi, [edi + ebx] ; coords of item
-    mov ebx, [fieldAddr]
+    mov ebx, [FieldAddr]
 
     ; ; NEED TO BE FIXED IN THE FUTURE
     ; mov byte[ebx + esi], 0 ; clear game field

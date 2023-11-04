@@ -31,28 +31,31 @@ proc GUIBasicInit
   mov [bmi.biBitCount], 32
   mov [bmi.biCompression], BI_RGB
 
-  ; stdcall DrawRect, [heapMemory], 200, 200, 300, 800, 0x00F09F00
-  ; stdcall DrawRect, [heapMemory], 200, 200, 200, 700, 0x00FF1911
-  ; stdcall DrawRect, [heapMemory], 150, 150, 200, 500, 0x00000000
+  jmp @F
+  error:
+    invoke MessageBox, NULL, _error, NULL, MB_ICONERROR + MB_OK
 
+  @@:
   ret 
-  endp
+endp
 
 proc ProcessWindowMsgs
   invoke GetMessage, msg, NULL, 0, 0
   cmp eax, 1
-  jb end_loop
-  ret
+  jb .end_loop
+  je @F
+    ret
   
+  @@:
   invoke TranslateMessage, msg
   invoke DispatchMessage, msg
   invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
 
-  error:
-    invoke MessageBox, NULL, _error, NULL, MB_ICONERROR + MB_OK
-
-  end_loop:
+  jmp @F
+  .end_loop:
     mov [StopGame], 1
+  
+  @@:
   ret 
   endp
 
@@ -100,6 +103,80 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
 endp
 
 
+proc calcCellSize
+  ; assuming that height is less then width
+  mov eax, [ScreenHeight] 
+  div [FieldSize]
+
+  cmp eax, 0
+  je .LessThen1PX
+  mov [CellSizePX], eax
+  jmp .Finished
+  .LessThen1PX:
+    mov [CellSizePX], 0xFF
+    ; NEEDS TO BE DONE
+  .Finished:
+
+  ret
+endp
+
+proc calcFieldOffsets
+  mov ebx, [ScreenHeight]
+  
+  ; getting size of field in pixels
+  mov eax, [FieldSize]
+  mul [CellSizePX]
+
+  ; calculating left space on screen in Y axis
+  sub ebx, eax
+  shr ebx, 1
+  mov [YFieldOffset], ebx
+
+  ; same for X-axis
+  mov ebx, [ScreenWidth]
+  sub ebx, eax
+  shr ebx, 1
+  mov [XFieldOffset], ebx
+
+  ret
+endp
+
+proc drawField
+  mov eax, [FieldSize]
+  mul [FieldSize]
+  mov ecx, eax 
+  mov edi, [FieldAddr]
+  mov ebx, [XFieldOffset] ; X coords offset
+  mov ebp, [YFieldOffset] ; Y coords offset 
+  .GoThoughFieldCells:
+    mov eax, 0 ; storing there color
+    test byte[edi], FIELD_AGENT_STATE
+    jz @F
+    mov eax, 0x00FF0000
+    jmp .stopColorSelection
+    @@:
+    test byte[edi], FIELD_FOOD_STATE
+    jz .stopColorSelection
+    mov eax, 0x000000FF
+    .stopColorSelection:
+    stdcall DrawRect, [ScreenBufAddr], ebx, ebp, [CellSizePX], [CellSizePX], eax
+
+    add ebx, [CellSizePX]
+    mov eax, [ScreenWidth]
+    sub eax, [XFieldOffset]
+    dec eax
+    cmp ebx, eax
+    jb @F
+
+    .NextLine:
+      add ebp, [CellSizePX]
+      mov ebx, [XFieldOffset]
+    @@:
+    inc edi
+    loop .GoThoughFieldCells
+
+  ret 
+endp
 proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   cmp [wmsg], WM_DESTROY
   je .wmdestroy

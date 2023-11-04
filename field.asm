@@ -2,8 +2,8 @@
 ; generates field with food, with agents and so on
 proc fillField
   ; get emount of cells to generate
-  mov eax, [fieldSize] 
-  mul [fieldSize]
+  mov eax, [FieldSize] 
+  mul [FieldSize]
 
   xor ebx, ebx
   xor esi, esi
@@ -18,7 +18,7 @@ proc fillField
     jmp Agent
   
     EmptyCell:
-      mov esi, [fieldAddr]
+      mov esi, [FieldAddr]
       mov byte[esi + ebx], 0
       jmp @F
     Food:
@@ -30,7 +30,7 @@ proc fillField
       mov ax, FIELD_FOOD_STATE
 
       ; food cell - oldest bit is 1
-      mov esi, [fieldAddr]
+      mov esi, [FieldAddr]
       mov byte[esi + ebx], al      
 
 
@@ -38,8 +38,8 @@ proc fillField
       mov eax, [FoodSize]
       mul [FoodRecSize]
       add edi, eax
-      mov eax, [fieldSize]  ; may be optimised mb
-      mul [fieldSize]
+      mov eax, [FieldSize]  ; may be optimised mb
+      mul [FieldSize]
       sub eax, ecx
       mov dword[edi + FOOD_COORDS_OFFSET], eax ; curr coords
       stdcall RandInt, [FoodMaxAmount]
@@ -58,7 +58,7 @@ proc fillField
       mov eax, FIELD_AGENT_STATE
 
       ; agent cell - pre oldest bit is 1
-      mov esi, [fieldAddr]
+      mov esi, [FieldAddr]
       mov byte[esi + ebx], al
 
 
@@ -69,8 +69,8 @@ proc fillField
       add edi, eax
       mov dword[edi], esi ; agent number (because we have indexing from zero, agents size will next agent id (used ONLY DURING GENERATION, before any agent died) )
 
-      mov eax, [fieldSize]  ; may be optimised mb
-      mul [fieldSize]
+      mov eax, [FieldSize]  ; may be optimised mb
+      mul [FieldSize]
       sub eax, ecx
       mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
       mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy

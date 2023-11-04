@@ -8,13 +8,13 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   mul [AgentRecSize]
   add esi, eax
 
-  mov edi, [fieldSize]
+  mov edi, [FieldSize]
   cmp [esi + AGENT_COORDS_OFFSET], edi
   jb .finish; agent is at top line - so skip move, but energy is decreased
 
   ; check that target cell empty
   neg edi
-  mov ebp, [fieldAddr]
+  mov ebp, [FieldAddr]
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
@@ -48,7 +48,7 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   mul [AgentRecSize]
   add esi, eax
 
-  mov edi, [fieldSize]
+  mov edi, [FieldSize]
   mov eax, edi
   mul eax
   sub eax, edi ; getting last line start position
@@ -56,7 +56,7 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   jge .finish; agent is at bottom line - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [fieldAddr]
+  mov ebp, [FieldAddr]
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + edi], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
@@ -90,12 +90,12 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   mov eax, [esi + AGENT_COORDS_OFFSET]
   add eax, 1
   xor edx, edx
-  div [fieldSize]
-  cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
+  div [FieldSize]
+  cmp edx, 0  ; check that (coords + 1) // FieldSize == 0 (in this case agent is at right corner)
   je .finish; agent is at right edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [fieldAddr]
+  mov ebp, [FieldAddr]
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp + 1], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
@@ -128,12 +128,12 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
 
   mov eax, [esi + AGENT_COORDS_OFFSET]
   xor edx, edx
-  div [fieldSize]
-  cmp edx, 0  ; check that (coords + 1) // fieldSize == 0 (in this case agent is at right corner)
+  div [FieldSize]
+  cmp edx, 0  ; check that (coords + 1) // FieldSize == 0 (in this case agent is at right corner)
   je .finish; agent is at left edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [fieldAddr]
+  mov ebp, [FieldAddr]
   add ebp, [esi + AGENT_COORDS_OFFSET]
   test byte[ebp - 1], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
@@ -163,7 +163,7 @@ endp
 ; coords - coords with food
 proc FeedAgent uses ecx esi edi ebx, AgentI, coords
   ; removing food flag from field cell
-  mov edi, [fieldAddr]
+  mov edi, [FieldAddr]
   add edi, [coords]
   xor byte[edi], FIELD_FOOD_STATE
 
@@ -211,7 +211,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   ; move clone to TOP
   ; edi will store new agent coords
   mov edi, [esi + AGENT_COORDS_OFFSET]
-  sub edi, [fieldSize]
+  sub edi, [FieldSize]
   cmp edi, 0
 
   
@@ -225,7 +225,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   mov eax, edi 
   add eax, 1
   xor edx, edx
-  div [fieldSize]
+  div [FieldSize]
   cmp edx, 0
   jz @F ; skip if in right border
     inc edi
@@ -236,8 +236,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
 
   ; move clone to BOTTOM
   mov edi, [esi + AGENT_COORDS_OFFSET]
-  add edi, [fieldSize]
-  stdcall getFieldSize, [fieldSize]
+  add edi, [FieldSize]
+  stdcall getFieldSize, [FieldSize]
   cmp edi, eax
   jae @F
     inc ebx
@@ -249,7 +249,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   mov edi, [esi + AGENT_COORDS_OFFSET]
   xor edx, edx
   mov eax, edi
-  div [fieldSize]
+  div [FieldSize]
   cmp edx, 0
   jz @F ; it's in left column, skipping
     dec edi
@@ -264,7 +264,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   mov ecx, ebx
   checkIsCellEmpty:
     pop edi
-    mov ebx, [fieldAddr]
+    mov ebx, [FieldAddr]
     test byte[ebx + edi], FIELD_AGENT_STATE
     jz .FoundPlace
     jmp @F
@@ -288,7 +288,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     cmp eax, [AgentsCapacity]
     jae TerminateCloning ; not enough space for new agent
     
-    mov ebx, [fieldAddr]
+    mov ebx, [FieldAddr]
     add ebx, [esi + AGENT_COORDS_OFFSET]
     xor byte[ebx], FIELD_AGENT_STATE ; clear old cell
     sub ebx, [esi + AGENT_COORDS_OFFSET]
@@ -318,7 +318,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov [edi + AGENT_COORDS_OFFSET], ebx ; changing coords
     mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
-    mov esi, [fieldAddr]
+    mov esi, [FieldAddr]
     test byte[esi + ebx], FIELD_FOOD_STATE ; checking is it food cell
     jz @F 
       stdcall FeedAgent, [AgentsSize], ebx
