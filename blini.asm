@@ -11,7 +11,7 @@ section '.data' data readable writeable
 
   
   ; field data
-  FieldSize dd 1079
+  FieldSize dd 512
   FieldCellSize dd 1
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000b
@@ -25,7 +25,7 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 100
+  AgentInitEnergy = 399
   AgentTaskMaxInd dd 3
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 6 
   AgentsCapacity dd ?
@@ -124,7 +124,6 @@ proc start
   stdcall drawBkg
   stdcall calcCellSize ; will put result into CellSizePX constant
   stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
-  stdcall drawField
   stdcall startGame
 
 ; just to print total number of tacts
@@ -210,6 +209,7 @@ proc startGame
   xor ebp, ebp ; tact counter
 
   gameLoop:
+    stdcall drawField
     stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
     cmp ecx, 0
@@ -281,9 +281,12 @@ proc startGame
         inc ebp
       cmp [StopGame], 1
       je GameOver
+      
+      invoke Sleep, 10
     jmp gameLoop
 
   GameOver:
+  stdcall drawField
   mov [TotalTacts], ebp
   ret
 endp
@@ -296,6 +299,7 @@ section '.idata' import data readable writeable
           
 
   import kernel32,\
+        Sleep, 'Sleep', \
          GetProcessHeap, 'GetProcessHeap',\
          HeapAlloc, 'HeapAlloc',\
          HeapFree, 'HeapFree',\
@@ -313,7 +317,7 @@ section '.idata' import data readable writeable
          RegisterClass, 'RegisterClassA', \
          CreateWindowEx, 'CreateWindowExA', \
          GetDC, 'GetDC', \
-         GetMessage, 'GetMessageA', \
+         PeekMessage, 'PeekMessageA', \
          TranslateMessage, 'TranslateMessage', \
          DispatchMessage, 'DispatchMessageA', \
          DefWindowProc, 'DefWindowProcA', \

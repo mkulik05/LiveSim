@@ -40,22 +40,18 @@ proc GUIBasicInit
 endp
 
 proc ProcessWindowMsgs
-  invoke GetMessage, msg, NULL, 0, 0
+  invoke PeekMessage, msg, NULL, 0, 0, 1 
   cmp eax, 1
-  jb .end_loop
   je @F
     ret
+
+  cmp eax, 0
+  jne @F 
+    ret 
   
   @@:
   invoke TranslateMessage, msg
   invoke DispatchMessage, msg
-  invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
-
-  jmp @F
-  .end_loop:
-    mov [StopGame], 1
-  
-  @@:
   ret 
   endp
 
@@ -95,10 +91,8 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
           mov ebx, [ScreenWidth]
           shl ebx, 2
           add edi, ebx
-
       pop ecx
   loop rectangleLoop
-
   ret 
 endp
 
@@ -141,7 +135,7 @@ proc calcFieldOffsets
   ret
 endp
 
-proc drawField
+proc drawField uses ecx edi ebx ebp
   mov eax, [FieldSize]
   mul [FieldSize]
   mov ecx, eax 
@@ -175,6 +169,7 @@ proc drawField
     inc edi
     loop .GoThoughFieldCells
 
+  invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
 proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
