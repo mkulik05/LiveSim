@@ -4,10 +4,13 @@ entry start
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
+  FrameDelayMs dd 1
   TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
+  StartTimeMs dd ?
   StopGame dd 0
+
 
   
   ; field data
@@ -201,14 +204,14 @@ inc esi
   ret
 endp
 
-
-
-
 proc startGame
   
   xor ebp, ebp ; tact counter
 
   gameLoop:
+    invoke GetTickCount
+    mov [StartTimeMs], eax
+
     invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
     stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
@@ -303,7 +306,20 @@ proc startGame
       cmp [StopGame], 1
       je GameOver
       
-      ; invoke Sleep, 10
+      invoke GetTickCount
+
+      ; getting time passed
+      sub eax, [StartTimeMs]
+
+      cmp eax, [FrameDelayMs]
+      ; frame too much, don't need extra delays
+      jge @F
+      mov ecx, [FrameDelayMs]
+      sub ecx, eax
+      
+      invoke Sleep, ecx
+      @@:
+    
     jmp gameLoop
 
   GameOver:
