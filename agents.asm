@@ -23,9 +23,12 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
 
+  mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   ; edi is already negative
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
   
+  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+
   ; edi is already negative
   or byte[ebp + edi], FIELD_AGENT_STATE
 
@@ -64,7 +67,13 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
+
+  mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
+  
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
+  
+  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  
   or byte[ebp + edi], FIELD_AGENT_STATE
 
   sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
@@ -103,7 +112,13 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
+
+  mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
+  
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
+  
+  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+
   or byte[ebp + 1], FIELD_AGENT_STATE
 
   sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
@@ -141,7 +156,13 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
   mov al, 0xFF
   xor al, FIELD_AGENT_STATE
   and byte[ebp], al
+    
+  mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
+
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
+  
+  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  
   or byte[ebp - 1], FIELD_AGENT_STATE
 
   sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
@@ -199,9 +220,10 @@ proc FeedAgent uses ecx esi edi ebx, AgentI, coords
 endp
 
 proc AgentClone uses ecx esi edi ebx edx, ind
+  mov [AgentClonedSuccessfully], 1
   ; getting agent addr in agents vector
   mov esi, [AgentsAddr]
-  mov eax, [ebp + 8]
+  mov eax, [ind]
 
   mul [AgentRecSize]
   add esi, eax
@@ -281,6 +303,10 @@ proc AgentClone uses ecx esi edi ebx edx, ind
 
 
   .StartCloning:  
+
+    movzx eax, word[esi + AGENT_COORDS_OFFSET]
+    stdcall BufCloneCell, eax, edi
+
     sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
     
     ; edi stores coords of new agent 
@@ -341,5 +367,6 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     inc [AgentNextIndex]
     inc [AgentsSize]
   TerminateCloning:
+    mov [AgentClonedSuccessfully], 0
   ret
 endp

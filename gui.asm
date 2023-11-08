@@ -39,21 +39,148 @@ proc GUIBasicInit
   ret 
 endp
 
+proc BufMoveAgent uses ecx edi edx ebx, src, dest
+  local X dd ?
+  local Y dd ?
+
+  mov eax, [src]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  ; getting cell Y coord in pxs
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+  mul [ScreenWidth]
+  mov ebx, eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add eax, [XFieldOffset]
+  mov [X], eax
+
+
+  add ebx, eax
+
+  mul [ScreenWidth]
+  mov edi, [ScreenBufAddr]
+  mov ecx, [edi + ebx] ; saving old cell color
+
+
+
+  stdcall DrawRect, [ScreenBufAddr], [X], [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
+  
+  mov eax, [dest]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  ; getting cell Y coord in pxs
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add eax, [XFieldOffset]
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], 0x00FF0000
+
+  ret
+endp
+
+proc bufClearCell uses ecx edi edx ebx, src
+  local X dd ?
+  local Y dd ?
+
+  mov eax, [src]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  ; getting cell Y coord in pxs
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add eax, [XFieldOffset]
+
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
+  ret
+endp
+
+proc BufCloneCell uses ecx edi edx, src, dest
+  local X dd ?
+  local Y dd ?
+
+  mov eax, [src]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  ; getting cell Y coord in pxs
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+  mul [ScreenWidth]
+  mov ebx, eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add ebx, eax
+  add ebx, [XFieldOffset]
+  
+  mov edi, [ScreenBufAddr]
+  mov ebx, [edi + ebx] ; getting old cell color
+
+  mov eax, [dest]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  ; getting cell Y coord in pxs
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add eax, [XFieldOffset]
+  nop 
+  nop
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], 0x00FF0000
+
+  ret
+endp
+
 proc ProcessWindowMsgs
   invoke PeekMessage, msg, NULL, 0, 0, 1 
-  cmp eax, 1
-  je @F
-    ret
+  ; cmp eax, 1
+  ; je @F
 
   cmp eax, 0
   jne @F 
-    ret 
+    jmp .finish 
   
   @@:
   invoke TranslateMessage, msg
   invoke DispatchMessage, msg
+
+  .finish:
   ret 
-  endp
+endp
 
 proc drawBkg
   mov edi, [ScreenBufAddr]
@@ -65,6 +192,8 @@ proc drawBkg
   ret
 endp
 
+
+; x, y - in pixels 
 proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
   mov ecx, [height]
   mov eax, [ScreenWidth]
@@ -100,6 +229,7 @@ endp
 proc calcCellSize
   ; assuming that height is less then width
   mov eax, [ScreenHeight] 
+  xor edx, edx
   div [FieldSize]
 
   cmp eax, 0
@@ -107,7 +237,9 @@ proc calcCellSize
   mov [CellSizePX], eax
   jmp .Finished
   .LessThen1PX:
-    mov [CellSizePX], 0xFF
+    mov [CellSizePX], 1
+    mov eax, [ScreenHeight]
+    mov [FieldSize], eax
     ; NEEDS TO BE DONE
   .Finished:
 
@@ -143,7 +275,7 @@ proc drawField uses ecx edi ebx ebp
   mov ebx, [XFieldOffset] ; X coords offset
   mov ebp, [YFieldOffset] ; Y coords offset 
   .GoThoughFieldCells:
-    mov eax, 0 ; storing there color
+    mov eax, EMPTY_COLOR ; storing there color
     test byte[edi], FIELD_AGENT_STATE
     jz @F
     mov eax, 0x00FF0000
@@ -167,8 +299,7 @@ proc drawField uses ecx edi ebx ebp
       mov ebx, [XFieldOffset]
     @@:
     inc edi
-    loop .GoThoughFieldCells
-
+  loop .GoThoughFieldCells
   invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp

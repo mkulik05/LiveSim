@@ -25,15 +25,16 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 399
-  AgentTaskMaxInd dd 3
-  AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 6 
+  AgentInitEnergy = 41
+  AgentTaskMaxInd dd 4
+  AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 0
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove = 20
-  AgentEnergyToClone = 100
-  AgentMinEnergyToClone = 400
+  AgentEnergyToClone = 30
+  AgentMinEnergyToClone = 1200
+  AgentClonedSuccessfully dd 0
   AgentNextIndex dd 0
   AgentMutationOdds dd 10 ; in percents
     
@@ -47,6 +48,13 @@ section '.data' data readable writeable
   FoodAddr dd ?
 
   ; GUI stuff
+  EMPTY_COLOR = 0x00000000
+  ScreenBufAddr dd 0
+  ScreenWidth dd 0
+  ScreenHeight dd 0
+  CellSizePX dd 0
+  XFieldOffset dd 0
+  YFieldOffset dd 0
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
@@ -54,12 +62,6 @@ section '.data' data readable writeable
   hwnd dd 0
   bmi BITMAPINFOHEADER
   msg MSG
-  ScreenBufAddr dd 0
-  ScreenWidth dd 0
-  ScreenHeight dd 0
-  CellSizePX dd 0
-  XFieldOffset dd 0
-  YFieldOffset dd 0
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0
@@ -124,6 +126,7 @@ proc start
   stdcall drawBkg
   stdcall calcCellSize ; will put result into CellSizePX constant
   stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
+  stdcall drawField
   stdcall startGame
 
 ; just to print total number of tacts
@@ -199,17 +202,14 @@ inc esi
 endp
 
 
-  include 'field.asm'
-  include 'assistive.asm'
-  include 'agents.asm'
-  include 'gui.asm'
 
 
 proc startGame
+  
   xor ebp, ebp ; tact counter
 
   gameLoop:
-    stdcall drawField
+    invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
     stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
     cmp ecx, 0
@@ -227,6 +227,7 @@ proc startGame
         mov edi, [edi + AGENT_COORDS_OFFSET]
         xor byte[ebx + edi], FIELD_AGENT_STATE
         pop edi
+        stdcall bufClearCell, [edi + AGENT_COORDS_OFFSET]
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
         dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
         sub edi, [AgentRecSize] ; same as esi
@@ -238,8 +239,12 @@ proc startGame
 
       ; cloning agent
       stdcall AgentClone, esi
-      ;   WTF
-      ; inc ecx ; so new agent will go too
+
+      ; in case of successful cloning, doing loop one more time (to process new agent too)
+      cmp [AgentClonedSuccessfully], 0
+      je @F
+        inc ecx 
+      @@:
       jmp NextAgent
 
       ContinueExecution: 
@@ -256,9 +261,25 @@ proc startGame
         ; if not - skipping move
         jmp skipMove
         @@:
-        stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
-        skipMove:
 
+
+        cmp ebx, 5
+        jne @F
+        ; checking does agent has enough energy to clone
+        cmp word[edi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
+        jg @F
+        jmp skipMove
+        @@:
+        stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
+
+        cmp ebx, 5
+        jne @F
+        cmp [AgentClonedSuccessfully], 0
+        je @F
+          inc ecx 
+        @@:
+
+        skipMove:
         ; switch to next instruction
         inc word[edi + AGENT_CURR_INSTR_OFFSET]
         movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
@@ -282,7 +303,7 @@ proc startGame
       cmp [StopGame], 1
       je GameOver
       
-      invoke Sleep, 10
+      ; invoke Sleep, 10
     jmp gameLoop
 
   GameOver:
@@ -324,3 +345,7 @@ section '.idata' import data readable writeable
          PostQuitMessage, 'PostQuitMessage'
   import gdi32,\
          SetDIBitsToDevice, 'SetDIBitsToDevice'
+  include 'field.asm'
+  include 'assistive.asm'
+  include 'gui.asm'
+  include 'agents.asm'
