@@ -39,7 +39,7 @@ proc GUIBasicInit
   ret 
 endp
 
-proc BufMoveAgent uses ecx edi edx ebx, src, dest
+proc BufMoveAgent uses ecx edi edx ebx, src, dest, energy
   local X dd ?
   local Y dd ?
 
@@ -67,7 +67,8 @@ proc BufMoveAgent uses ecx edi edx ebx, src, dest
 
   mul [ScreenWidth]
   mov edi, [ScreenBufAddr]
-  mov ecx, [edi + ebx] ; saving old cell color
+  stdcall CalcAgentColor, [energy]
+  mov ecx, eax ; saving old cell color
 
 
 
@@ -88,7 +89,7 @@ proc BufMoveAgent uses ecx edi edx ebx, src, dest
   mov eax, [X]
   mul [CellSizePX]
   add eax, [XFieldOffset]
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], 0x00FF0000
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ecx
 
   ret
 endp
@@ -117,7 +118,7 @@ proc bufClearCell uses ecx edi edx ebx, src
   ret
 endp
 
-proc BufCloneCell uses ecx edi edx, src, dest
+proc BufCloneCell uses ecx edi edx, src, dest, energy
   local X dd ?
   local Y dd ?
 
@@ -141,7 +142,8 @@ proc BufCloneCell uses ecx edi edx, src, dest
   add ebx, [XFieldOffset]
   
   mov edi, [ScreenBufAddr]
-  mov ebx, [edi + ebx] ; getting old cell color
+  stdcall CalcAgentColor, [energy]
+  mov ebx, eax ; getting old cell color
 
   mov eax, [dest]
   xor edx, edx
@@ -158,10 +160,31 @@ proc BufCloneCell uses ecx edi edx, src, dest
   mov eax, [X]
   mul [CellSizePX]
   add eax, [XFieldOffset]
-  nop 
-  nop
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], 0x00FF0000
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ebx
 
+  ret
+endp
+
+proc bufUpdateCellColor uses ecx edi edx ebx, src, color
+  local X dd ?
+  local Y dd ?
+
+  mov eax, [src]
+  xor edx, edx
+  div [FieldSize]
+  mov [X], edx 
+  mov [Y], eax
+
+  mov eax, [Y]
+  mul [CellSizePX]
+  add eax, [YFieldOffset]
+  mov [Y], eax
+
+  mov eax, [X]
+  mul [CellSizePX]
+  add eax, [XFieldOffset]
+  mov ebx, [color]
+  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ebx
   ret
 endp
 
@@ -229,6 +252,7 @@ endp
 proc calcCellSize
   ; assuming that height is less then width
   mov eax, [ScreenHeight] 
+  sub eax, 2
   xor edx, edx
   div [FieldSize]
 
@@ -256,6 +280,7 @@ proc calcFieldOffsets
   ; calculating left space on screen in Y axis
   sub ebx, eax
   shr ebx, 1
+  dec eax
   mov [YFieldOffset], ebx
 
   ; same for X-axis
@@ -303,6 +328,21 @@ proc drawField uses ecx edi ebx ebp
   invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
+
+proc CalcAgentColor uses edx ebx ecx, energy 
+    movzx eax, word[energy]
+    xor edx, edx
+
+    ; considering AgentMinEnergyToClone as max energy
+    mov ecx, 0xFF
+    mul ecx
+    xor edx, edx
+    mov ecx, dword[AgentMinEnergyToClone]
+    div ecx
+    shl eax, 16
+  ret
+endp
+
 proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   cmp [wmsg], WM_DESTROY
   je .wmdestroy

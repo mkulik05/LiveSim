@@ -26,7 +26,7 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy dd 41 ; read from file (RFF)
+  AgentInitEnergy dd 100 ; read from file (RFF)
   AgentTaskMaxInd dd 4
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 0
   AgentsCapacity dd ?
@@ -34,16 +34,17 @@ section '.data' data readable writeable
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
   AgentEnergyToClone dd 30 ; RFF
-  AgentMinEnergyToClone dd 1200 ; RFF
+  AgentMinEnergyToClone dd 400 ; RFF
   AgentClonedSuccessfully dd 0
   AgentNextIndex dd 0
   AgentMutationOdds dd 10 ; RFF in percents
+  AgentMaxEnergyColor = 0x00FF0000
     
   ; food info
   FoodRecSize dd 6
   FOOD_COORDS_OFFSET = 0 ; 4B
   FOOD_AMOUNT_OFFSET = 4 ; 2B
-  FoodMaxAmount dd 200  ; RFF
+  FoodMaxAmount dd 150  ; RFF
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
@@ -222,6 +223,9 @@ proc startGame
       ; CHECK ROBOT ENERGY
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
+      jnl @F
+        invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
+      @@:
       jg @F
         mov ebx, [FieldAddr]
         push edi 
@@ -283,6 +287,10 @@ proc startGame
         @@:
 
         skipMove:
+
+
+        stdcall CalcAgentColor, [edi + AGENT_ENERGY_OFFSET]
+        stdcall bufUpdateCellColor, [edi + AGENT_COORDS_OFFSET], eax
         ; switch to next instruction
         inc word[edi + AGENT_CURR_INSTR_OFFSET]
         movzx ebx, word[edi + AGENT_CURR_INSTR_OFFSET]
@@ -323,7 +331,6 @@ proc startGame
     jmp gameLoop
 
   GameOver:
-  stdcall drawField
   mov [TotalTacts], ebp
   ret
 endp

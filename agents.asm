@@ -1,6 +1,6 @@
 
 ; BP registor is used inside!!!
-proc AgentMoveTop uses esi edi ebx ebp, ind
+proc AgentMoveTop uses esi edi ebx edx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mov ebx, eax
@@ -27,7 +27,8 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   ; edi is already negative
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
   
-  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  movzx edx, word[esi + AGENT_ENERGY_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   ; edi is already negative
   or byte[ebp + edi], FIELD_AGENT_STATE
@@ -44,7 +45,7 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   ret
 endp
 
-proc AgentMoveDown uses esi edi ebx ebp, ind
+proc AgentMoveDown uses esi edi ebx edx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mov ebx, eax
@@ -73,7 +74,8 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
   
-  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET]
+  movzx edx, word[esi + AGENT_ENERGY_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
   or byte[ebp + edi], FIELD_AGENT_STATE
 
@@ -89,7 +91,7 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   ret
 endp
 
-proc AgentMoveRight uses esi edi ebx ebp, ind
+proc AgentMoveRight uses esi edi ebx edx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mov ebx, eax
@@ -119,7 +121,8 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
   
-  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  mov edx, [esi + AGENT_ENERGY_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   or byte[ebp + 1], FIELD_AGENT_STATE
 
@@ -135,7 +138,7 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
   ret
 endp
 
-proc AgentMoveLeft uses esi edi ebx ebp, ind
+proc AgentMoveLeft uses esi edi ebx edx ebp, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
   mov ebx, eax
@@ -164,7 +167,8 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
 
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
   
-  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET]
+  movzx edx, word[esi + AGENT_ENERGY_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
   or byte[ebp - 1], FIELD_AGENT_STATE
 
@@ -309,7 +313,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   .StartCloning:  
 
     movzx eax, word[esi + AGENT_COORDS_OFFSET]
-    stdcall BufCloneCell, eax, edi
+    movzx edx, word[esi + AGENT_ENERGY_OFFSET]
+    stdcall BufCloneCell, eax, edi, edx
 
     mov eax, [AgentEnergyToClone]
     sub word[esi + AGENT_ENERGY_OFFSET], ax
