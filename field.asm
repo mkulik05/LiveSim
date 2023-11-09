@@ -73,7 +73,8 @@ proc fillField
       mul [FieldSize]
       sub eax, ecx
       mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
-      mov word[edi + AGENT_ENERGY_OFFSET], AgentInitEnergy
+      mov eax, [AgentInitEnergy]
+      mov word[edi + AGENT_ENERGY_OFFSET], ax
       mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
       mov eax, AGENT_MAX_INSTRUCTIONS_N 

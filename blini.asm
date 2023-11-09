@@ -10,8 +10,6 @@ section '.data' data readable writeable
   TotalAllocSize dd ?
   StartTimeMs dd ?
   StopGame dd 0
-
-
   
   ; field data
   FieldSize dd 512
@@ -28,24 +26,24 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy = 41
+  AgentInitEnergy dd 41 ; read from file (RFF)
   AgentTaskMaxInd dd 4
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 0
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
-  AgentEnergyToMove = 20
-  AgentEnergyToClone = 30
-  AgentMinEnergyToClone = 1200
+  AgentEnergyToMove dd 20 ; RFF
+  AgentEnergyToClone dd 30 ; RFF
+  AgentMinEnergyToClone dd 1200 ; RFF
   AgentClonedSuccessfully dd 0
   AgentNextIndex dd 0
-  AgentMutationOdds dd 10 ; in percents
+  AgentMutationOdds dd 10 ; RFF in percents
     
   ; food info
   FoodRecSize dd 6
   FOOD_COORDS_OFFSET = 0 ; 4B
   FOOD_AMOUNT_OFFSET = 4 ; 2B
-  FoodMaxAmount dd 200
+  FoodMaxAmount dd 200  ; RFF
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
@@ -237,7 +235,7 @@ proc startGame
         jmp NextAgent
       @@:
 
-      cmp eax, AgentMinEnergyToClone
+      cmp eax, [AgentMinEnergyToClone]
       jb ContinueExecution
 
       ; cloning agent
@@ -259,7 +257,8 @@ proc startGame
         cmp ebx, 4
         jge @F
         ; checking does agent has enough energy to move
-        cmp word[edi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+        mov eax, [AgentEnergyToMove]
+        cmp word[edi + AGENT_ENERGY_OFFSET], ax
         jge @F
         ; if not - skipping move
         jmp skipMove
@@ -269,7 +268,8 @@ proc startGame
         cmp ebx, 5
         jne @F
         ; checking does agent has enough energy to clone
-        cmp word[edi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
+        mov eax, [AgentEnergyToClone]
+        cmp word[edi + AGENT_ENERGY_OFFSET], ax
         jg @F
         jmp skipMove
         @@:

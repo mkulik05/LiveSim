@@ -32,7 +32,8 @@ proc AgentMoveTop uses esi edi ebx ebp, ind
   ; edi is already negative
   or byte[ebp + edi], FIELD_AGENT_STATE
 
-  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
@@ -72,11 +73,12 @@ proc AgentMoveDown uses esi edi ebx ebp, ind
   
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
   
-  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET]
   
   or byte[ebp + edi], FIELD_AGENT_STATE
 
-  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
@@ -121,7 +123,8 @@ proc AgentMoveRight uses esi edi ebx ebp, ind
 
   or byte[ebp + 1], FIELD_AGENT_STATE
 
-  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
@@ -161,11 +164,12 @@ proc AgentMoveLeft uses esi edi ebx ebp, ind
 
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
   
-  stdcall BufMoveAgent, eax,  [esi + AGENT_COORDS_OFFSET]
+  stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET]
   
   or byte[ebp - 1], FIELD_AGENT_STATE
 
-  sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToMove
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
@@ -307,7 +311,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     movzx eax, word[esi + AGENT_COORDS_OFFSET]
     stdcall BufCloneCell, eax, edi
 
-    sub word[esi + AGENT_ENERGY_OFFSET], AgentEnergyToClone
+    mov eax, [AgentEnergyToClone]
+    sub word[esi + AGENT_ENERGY_OFFSET], ax
     
     ; edi stores coords of new agent 
     mov eax, [AgentsSize]
@@ -353,7 +358,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     xor ebx, ebx
     .CheckMutation:
       stdcall RandInt, 100
-      cmp eax, AgentMutationOdds
+      cmp eax, [AgentMutationOdds]
       ja .NextAgent
         
         ; generating new instruction
