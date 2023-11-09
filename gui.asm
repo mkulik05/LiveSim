@@ -292,13 +292,15 @@ proc calcFieldOffsets
   ret
 endp
 
-proc drawField uses ecx edi ebx ebp
+proc drawField uses ecx edi ebx ebp esi
   mov eax, [FieldSize]
   mul [FieldSize]
   mov ecx, eax 
   mov edi, [FieldAddr]
   mov ebx, [XFieldOffset] ; X coords offset
   mov ebp, [YFieldOffset] ; Y coords offset 
+
+  mov esi, [FoodAddr] ; will store current food addr (needed to get food amount quickly)
   .GoThoughFieldCells:
     mov eax, EMPTY_COLOR ; storing there color
     test byte[edi], FIELD_AGENT_STATE
@@ -308,7 +310,11 @@ proc drawField uses ecx edi ebx ebp
     @@:
     test byte[edi], FIELD_FOOD_STATE
     jz .stopColorSelection
-    mov eax, 0x000000FF
+    
+    movzx eax, word[esi + FOOD_AMOUNT_OFFSET]
+    stdcall CalcFoodColor, eax
+
+    add esi, [FoodRecSize]
     .stopColorSelection:
     stdcall DrawRect, [ScreenBufAddr], ebx, ebp, [CellSizePX], [CellSizePX], eax
 
@@ -337,9 +343,22 @@ proc CalcAgentColor uses edx ebx ecx, energy
     mov ecx, 0xFF
     mul ecx
     xor edx, edx
-    mov ecx, dword[AgentMinEnergyToClone]
+    mov ecx, [AgentMinEnergyToClone]
     div ecx
     shl eax, 16
+  ret
+endp
+
+proc CalcFoodColor uses edx ebx ecx, amount 
+    movzx eax, word[amount]
+    xor edx, edx
+
+    ; considering AgentMinEnergyToClone as max energy
+    mov ecx, 0xFF
+    mul ecx
+    xor edx, edx
+    mov ecx, [FoodMaxAmount]
+    div ecx
   ret
 endp
 
