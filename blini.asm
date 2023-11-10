@@ -41,10 +41,15 @@ section '.data' data readable writeable
   AgentMaxEnergyColor = 0x00FF0000
     
   ; food info
-  FoodRecSize dd 6
+  FoodMaxValue dd 200 ; RFF
+  TimeForFoodToGrow dd 2 ; RFF; N: food grow by specified in vector value each N tacts 
+  FoodGrowMaxValue dd 50 ; RFF
+  FoodRecSize dd 10
   FOOD_COORDS_OFFSET = 0 ; 4B
   FOOD_AMOUNT_OFFSET = 4 ; 2B
-  FoodMaxAmount dd 150  ; RFF
+  FOOD_MAX_AMOUNT_OFFSET = 6 ; 2B
+  FOOD_GROW_VALUE_OFFSET = 8 ; 2B value, how food is incremented
+  FoodMaxInitAmount dd 50  ; RFF
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
@@ -236,6 +241,7 @@ proc startGame
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
         dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
         sub edi, [AgentRecSize] ; same as esi
+        ; inc ecx??????????????????????????????????????????
         jmp NextAgent
       @@:
 
@@ -310,6 +316,15 @@ proc startGame
 
         .stopAgentLoop:
 
+        ; checking that it's time for food to grow
+        xor edx, edx
+        mov eax, ebp
+        div [TimeForFoodToGrow]
+        cmp edx, 0
+        jne .SkipFoodGrowing
+        stdcall GrowFood
+
+        .SkipFoodGrowing:
         inc ebp
       cmp [StopGame], 1
       je GameOver
@@ -335,6 +350,30 @@ proc startGame
   ret
 endp
 
+proc GrowFood uses ecx edi
+  mov ecx, [FoodSize]
+  cmp ecx, 0
+  jbe .stop
+  mov edi, [FoodAddr]
+  .loopStart:
+
+    ; to optimize mb
+    
+    movzx eax, word[edi + FOOD_GROW_VALUE_OFFSET]
+    add word[edi + FOOD_AMOUNT_OFFSET], ax
+    movzx eax, word[edi + FOOD_MAX_AMOUNT_OFFSET]
+    cmp word[edi + FOOD_AMOUNT_OFFSET], ax
+    jb @F
+      mov word[edi + FOOD_AMOUNT_OFFSET], ax
+    @@:
+    movzx eax, word[edi + FOOD_AMOUNT_OFFSET]
+    stdcall CalcFoodColor, eax
+    stdcall bufUpdateCellColor, [edi + FOOD_COORDS_OFFSET], eax
+    add edi, [FoodRecSize]
+  loop .loopStart
+  .stop:
+  ret 
+endp
 
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL',\

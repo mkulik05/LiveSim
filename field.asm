@@ -42,8 +42,18 @@ proc fillField
       mul [FieldSize]
       sub eax, ecx
       mov dword[edi + FOOD_COORDS_OFFSET], eax ; curr coords
-      stdcall RandInt, [FoodMaxAmount]
+      stdcall RandInt, [FoodMaxInitAmount]
       mov word[edi + FOOD_AMOUNT_OFFSET], ax ; save food amount
+
+      mov eax, [FoodMaxValue]
+      sub eax, [FoodMaxInitAmount]
+      stdcall RandInt, eax
+      add eax, [FoodMaxInitAmount]
+      mov word[edi + FOOD_MAX_AMOUNT_OFFSET], ax
+
+      stdcall RandInt, [FoodGrowMaxValue]
+      mov word[edi + FOOD_GROW_VALUE_OFFSET], ax ; save food growing amount
+
       inc [FoodSize]
       jmp @F
 

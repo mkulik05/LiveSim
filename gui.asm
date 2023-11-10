@@ -1,4 +1,4 @@
-proc drawField uses ecx edi ebx ebp esi
+proc drawField uses ecx edi ebx edx ebp esi
   mov eax, [FieldSize]
   mul [FieldSize]
   mov ecx, eax 
@@ -7,11 +7,19 @@ proc drawField uses ecx edi ebx ebp esi
   mov ebp, [YFieldOffset] ; Y coords offset 
 
   mov esi, [FoodAddr] ; will store current food addr (needed to get food amount quickly)
+  mov edx, [AgentsAddr] ; will store current agent addr
   .GoThoughFieldCells:
     mov eax, EMPTY_COLOR ; storing there color
     test byte[edi], FIELD_AGENT_STATE
     jz @F
-    mov eax, 0x00FF0000
+    ; backing up esi
+    push esi 
+    mov esi, edx
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
+    pop esi
+    
+    stdcall CalcAgentColor, eax
+    add edx, [AgentRecSize]
     jmp .stopColorSelection
     @@:
     test byte[edi], FIELD_FOOD_STATE
@@ -254,7 +262,7 @@ proc CalcFoodColor uses edx ebx ecx, amount
     mov ecx, 0xFF
     mul ecx
     xor edx, edx
-    mov ecx, [FoodMaxAmount]
+    mov ecx, [FoodMaxValue]
     div ecx
   ret
 endp
