@@ -16,10 +16,10 @@ proc fillField
     cmp al, 200
     jb Food
     jmp Agent
-  
+
     EmptyCell:
       mov esi, [FieldAddr]
-      mov byte[esi + ebx], 0
+      mov dword[esi + ebx * FieldCellSize], 0
       jmp @F
     Food:
       ; chech is there enough memory
@@ -27,11 +27,11 @@ proc fillField
       cmp eax, [FoodSize]
       jle EmptyCell 
 
-      mov ax, FIELD_FOOD_STATE
+      mov eax, FIELD_FOOD_STATE
 
       ; food cell - oldest bit is 1
       mov esi, [FieldAddr]
-      mov byte[esi + ebx], al      
+      mov dword[esi + ebx * FieldCellSize], eax  
 
 
       mov edi, [FoodAddr]
@@ -69,7 +69,7 @@ proc fillField
 
       ; agent cell - pre oldest bit is 1
       mov esi, [FieldAddr]
-      mov byte[esi + ebx], al
+      mov dword[esi + ebx * FieldCellSize], eax
 
 
       mov esi, [AgentsSize]

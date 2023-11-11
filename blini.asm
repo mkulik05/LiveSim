@@ -4,7 +4,7 @@ entry start
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 1
+  FrameDelayMs dd 1000
   TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
@@ -13,10 +13,10 @@ section '.data' data readable writeable
   
   ; field data
   FieldSize dd 512
-  FieldCellSize dd 1
+  FieldCellSize = 4
   FieldAddr dd ?
-  FIELD_AGENT_STATE = 0100_0000b
-  FIELD_FOOD_STATE = 1000_0000b
+  FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
+  FIELD_FOOD_STATE = 1000_0000_0000_0000_0000_0000_0000_0000b
 
   ; agents vec data
   AgentRecSize dd 22
@@ -25,20 +25,19 @@ section '.data' data readable writeable
   AGENT_CURR_INSTR_OFFSET = 10 ; 2B
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
-  AGENT_MAX_INSTRUCTIONS_N = 8 ; 
-  AgentInitEnergy dd 100 ; read from file (RFF)
+  AGENT_MAX_INSTRUCTIONS_N = 8 
+  AgentInitEnergy dd 199 ; read from file (RFF)
   AgentTaskMaxInd dd 4
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 0
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 30 ; RFF
-  AgentMinEnergyToClone dd 400 ; RFF
+  AgentEnergyToClone dd 198 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentMinEnergyToClone dd 200 ; RFF
   AgentClonedSuccessfully dd 0
   AgentNextIndex dd 0
   AgentMutationOdds dd 10 ; RFF in percents
-  AgentMaxEnergyColor = 0x00FF0000
     
   ; food info
   FoodMaxValue dd 200 ; RFF
@@ -49,7 +48,7 @@ section '.data' data readable writeable
   FOOD_AMOUNT_OFFSET = 4 ; 2B
   FOOD_MAX_AMOUNT_OFFSET = 6 ; 2B
   FOOD_GROW_VALUE_OFFSET = 8 ; 2B value, how food is incremented
-  FoodMaxInitAmount dd 50  ; RFF
+  FoodMaxInitAmount dd 150  ; RFF
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
@@ -77,7 +76,10 @@ section '.data' data readable writeable
 section '.text' code readable executable
 
 proc start
-  stdcall getFieldSize, [FieldSize] ; got field size
+  mov eax, FieldCellSize
+  mul [FieldSize]
+  mul [FieldSize]
+
   mov [TotalAllocSize], eax
   ; assuming that maximum amount of agents is n * n/2, for food same
   mov eax, [FieldSize]
@@ -108,7 +110,9 @@ proc start
 
   ; calculating AgentsAddr
   mov ebx, [FieldAddr]
-  stdcall getFieldSize, [FieldSize]
+  mov eax, FieldCellSize
+  mul [FieldSize]
+  mul [FieldSize]
   add ebx, eax
   mov [AgentsAddr], ebx
 
@@ -228,20 +232,16 @@ proc startGame
       ; CHECK ROBOT ENERGY
       movzx eax, word[edi + AGENT_ENERGY_OFFSET]
       cmp eax, 0
-      jnl @F
-        invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
-      @@:
       jg @F
         mov ebx, [FieldAddr]
         push edi 
         mov edi, [edi + AGENT_COORDS_OFFSET]
-        xor byte[ebx + edi], FIELD_AGENT_STATE
+        xor dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
         pop edi
         stdcall bufClearCell, [edi + AGENT_COORDS_OFFSET]
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi
         dec esi ; decrementing cause 1 agent is gone, but he was replaced with last one in agent vector, so need to process him
         sub edi, [AgentRecSize] ; same as esi
-        ; inc ecx??????????????????????????????????????????
         jmp NextAgent
       @@:
 
@@ -252,8 +252,8 @@ proc startGame
       stdcall AgentClone, esi
 
       ; in case of successful cloning, doing loop one more time (to process new agent too)
-      cmp [AgentClonedSuccessfully], 0
-      je @F
+      cmp [AgentClonedSuccessfully], 1
+      jne @F
         inc ecx 
       @@:
       jmp NextAgent
@@ -294,8 +294,8 @@ proc startGame
 
         skipMove:
 
-
-        stdcall CalcAgentColor, [edi + AGENT_ENERGY_OFFSET]
+        movzx eax, word[edi + AGENT_ENERGY_OFFSET]
+        stdcall CalcAgentColor, eax
         stdcall bufUpdateCellColor, [edi + AGENT_COORDS_OFFSET], eax
         ; switch to next instruction
         inc word[edi + AGENT_CURR_INSTR_OFFSET]
@@ -358,7 +358,6 @@ proc GrowFood uses ecx edi
   .loopStart:
 
     ; to optimize mb
-    
     movzx eax, word[edi + FOOD_GROW_VALUE_OFFSET]
     add word[edi + FOOD_AMOUNT_OFFSET], ax
     movzx eax, word[edi + FOOD_MAX_AMOUNT_OFFSET]

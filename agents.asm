@@ -14,14 +14,17 @@ proc AgentMoveTop uses esi edi ebx edx ebp, ind
 
   ; check that target cell empty
   neg edi
+  mov eax, edi
   mov ebp, [FieldAddr]
-  add ebp, [esi + AGENT_COORDS_OFFSET]
-  test byte[ebp + edi], FIELD_AGENT_STATE
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  shl eax, 2 
+  add ebp, eax
+  test dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
   
-  mov al, 0xFF
-  xor al, FIELD_AGENT_STATE
-  and byte[ebp], al
+  mov eax, 0xFFFFFFFF
+  xor eax, FIELD_AGENT_STATE
+  and dword[ebp], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   ; edi is already negative
@@ -31,12 +34,12 @@ proc AgentMoveTop uses esi edi ebx edx ebp, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   ; edi is already negative
-  or byte[ebp + edi], FIELD_AGENT_STATE
+  or dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
-  sub word[esi + AGENT_ENERGY_OFFSET], ax
+  sub dword[esi + AGENT_ENERGY_OFFSET], eax
 
-  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebp + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
@@ -57,18 +60,20 @@ proc AgentMoveDown uses esi edi ebx edx ebp, ind
   mov eax, edi
   mul eax
   sub eax, edi ; getting last line start position
-  cmp [esi + AGENT_COORDS_OFFSET], edi
+  cmp [esi + AGENT_COORDS_OFFSET], eax
   jge .finish; agent is at bottom line - so skip move, but energy is decreased
 
   ; check that target cell empty
   mov ebp, [FieldAddr]
-  add ebp, [esi + AGENT_COORDS_OFFSET]
-  test byte[ebp + edi], FIELD_AGENT_STATE
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  shl eax, 2
+  add ebp, eax
+  test dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov al, 0xFF
-  xor al, FIELD_AGENT_STATE
-  and byte[ebp], al
+  mov eax, 0xFFFFFFFF
+  xor eax, FIELD_AGENT_STATE
+  and dword[ebp], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
@@ -77,12 +82,13 @@ proc AgentMoveDown uses esi edi ebx edx ebp, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
-  or byte[ebp + edi], FIELD_AGENT_STATE
+
+  or dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test byte[ebp + edi], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebp + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
@@ -109,27 +115,29 @@ proc AgentMoveRight uses esi edi ebx edx ebp, ind
 
   ; check that target cell empty
   mov ebp, [FieldAddr]
-  add ebp, [esi + AGENT_COORDS_OFFSET]
-  test byte[ebp + 1], FIELD_AGENT_STATE
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  shl eax, 2
+  add ebp, eax
+  test dword[ebp + FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov al, 0xFF
-  xor al, FIELD_AGENT_STATE
-  and byte[ebp], al
+  mov eax, 0xFFFFFFFF
+  xor eax, FIELD_AGENT_STATE
+  and dword[ebp], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
   
-  mov edx, [esi + AGENT_ENERGY_OFFSET]
+  movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
-  or byte[ebp + 1], FIELD_AGENT_STATE
+  or dword[ebp + FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test byte[ebp + 1], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebp + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
@@ -155,13 +163,15 @@ proc AgentMoveLeft uses esi edi ebx edx ebp, ind
 
   ; check that target cell empty
   mov ebp, [FieldAddr]
-  add ebp, [esi + AGENT_COORDS_OFFSET]
-  test byte[ebp - 1], FIELD_AGENT_STATE
+  mov eax, [esi + AGENT_COORDS_OFFSET]
+  shl eax, 2
+  add ebp, eax
+  test dword[ebp - FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov al, 0xFF
-  xor al, FIELD_AGENT_STATE
-  and byte[ebp], al
+  mov eax, 0xFFFFFFFF
+  xor eax, FIELD_AGENT_STATE
+  and dword[ebp], eax
     
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
 
@@ -170,12 +180,12 @@ proc AgentMoveLeft uses esi edi ebx edx ebp, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
-  or byte[ebp - 1], FIELD_AGENT_STATE
+  or dword[ebp - FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test byte[ebp - 1], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebp - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
     stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
 
@@ -193,8 +203,10 @@ endp
 proc FeedAgent uses ecx esi edi ebx, AgentI, coords
   ; removing food flag from field cell
   mov edi, [FieldAddr]
-  add edi, [coords]
-  xor byte[edi], FIELD_FOOD_STATE
+  mov eax, [coords]
+  shl eax, 2
+  add edi, eax
+  xor dword[edi], FIELD_FOOD_STATE
 
   mov ecx, [FoodSize]
   xor esi, esi
@@ -267,7 +279,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   ; move clone to BOTTOM
   mov edi, [esi + AGENT_COORDS_OFFSET]
   add edi, [FieldSize]
-  stdcall getFieldSize, [FieldSize]
+  mov eax, [FieldSize]
+  mul eax
   cmp edi, eax
   jae @F
     inc ebx
@@ -292,13 +305,15 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     je TerminateCloning ; rejected cloning (no space to move clone to)
   
   mov ecx, ebx
+  xor edx, edx ; flag, was agent found or not
   checkIsCellEmpty:
     pop edi
     mov ebx, [FieldAddr]
-    test byte[ebx + edi], FIELD_AGENT_STATE
+    test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
     jz .FoundPlace
     jmp @F
     .FoundPlace:
+      mov edx, 1
       dec ecx
       cmp ecx, 0
       je .StartCloning ; if there were only one coords, they are already extracted
@@ -309,6 +324,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     @@:  
   loop checkIsCellEmpty
 
+  cmp edx, 1
+  jne TerminateCloning
 
   .StartCloning:  
 
@@ -325,15 +342,17 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     jae TerminateCloning ; not enough space for new agent
     
     mov ebx, [FieldAddr]
-    add ebx, [esi + AGENT_COORDS_OFFSET]
-    xor byte[ebx], FIELD_AGENT_STATE ; clear old cell
-    sub ebx, [esi + AGENT_COORDS_OFFSET]
-    or byte[ebx + edi], FIELD_AGENT_STATE ; updated new cell
+    mov eax, [esi + AGENT_COORDS_OFFSET]
+    shl eax, 2
+    add ebx, eax
+    xor dword[ebx], FIELD_AGENT_STATE ; clear old cell
+    sub ebx, eax
+    or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE ; updated new cell
     
     ; updating agent energy (it will be splitted between it and clone)
-    mov eax, [esi + AGENT_ENERGY_OFFSET]
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
     shr eax, 1
-    mov [esi + AGENT_ENERGY_OFFSET], eax
+    mov word[esi + AGENT_ENERGY_OFFSET], ax
     ; because of movsb energy will be saved to clone too
 
     ; getting new agent addr
@@ -355,7 +374,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
     mov esi, [FieldAddr]
-    test byte[esi + ebx], FIELD_FOOD_STATE ; checking is it food cell
+    test dword[esi + ebx * FieldCellSize], FIELD_FOOD_STATE ; checking is it food cell
     jz @F 
       stdcall FeedAgent, [AgentsSize], ebx
     @@:
@@ -376,7 +395,11 @@ proc AgentClone uses ecx esi edi ebx edx, ind
 
     inc [AgentNextIndex]
     inc [AgentsSize]
+  jmp @F
   TerminateCloning:
     mov [AgentClonedSuccessfully], 0
+
+  @@:
+
   ret
 endp

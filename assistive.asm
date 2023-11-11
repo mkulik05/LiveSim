@@ -16,13 +16,6 @@ proc RandInt uses ecx ebx edx, maxVal
     ret 
 endp
 
-proc getFieldSize, size
-  mov eax, [size]
-  mul eax
-  mul [FieldCellSize]
-  ret
-endp
-
 ; Allocate required amount of memory (memSize) for field. Stores heapHandle in HeapHandle
 proc allocMem uses esi edx, memSize, PHeapHandle, PbufAddr
   ; getting heap addr
