@@ -4,7 +4,7 @@ entry start
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 1000
+  FrameDelayMs dd 1
   TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
@@ -26,14 +26,14 @@ section '.data' data readable writeable
   AGENT_INSTR_NUM_OFFSET = 12  ; 2B
   AGENT_INSTR_VEC_OFFSET = 14 ; B[]
   AGENT_MAX_INSTRUCTIONS_N = 8 
-  AgentInitEnergy dd 199 ; read from file (RFF)
-  AgentTaskMaxInd dd 4
-  AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, 0
+  AgentInitEnergy dd 150 ; read from file (RFF)
+  AgentTaskMaxInd dd 5
+  AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, AgentClone
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 198 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentEnergyToClone dd 100 ; RFF   ; should be less then AgentMinEnergyToClone
   AgentMinEnergyToClone dd 200 ; RFF
   AgentClonedSuccessfully dd 0
   AgentNextIndex dd 0
