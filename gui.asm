@@ -369,12 +369,20 @@ endp
 proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   cmp [wmsg], WM_DESTROY
   je .wmdestroy
-  .defwndproc:
+  cmp [wmsg], WM_KEYDOWN
+  je .keyDown
   invoke DefWindowProc, [hwnd], [wmsg], [wparam], [lparam]
   jmp .finish
+
+  .keyDown:
+    cmp [wparam], VK_ESCAPE
+    je .wmdestroy
+  jmp .finish
+
   .wmdestroy:
   invoke PostQuitMessage, 0
   xor eax, eax
+  invoke  ExitProcess, 0
   .finish:
   ret
 endp
