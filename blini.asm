@@ -25,12 +25,12 @@ section '.data' data readable writeable
 
   ; agents vec data
   AGENT_MAX_INSTRUCTIONS_N = 15 ; RFF
-  AgentRecSize dd 14 + AGENT_MAX_INSTRUCTIONS_N
-  AGENT_COORDS_OFFSET = 4 ; 4B
-  AGENT_ENERGY_OFFSET = 8 ; 2B
-  AGENT_CURR_INSTR_OFFSET = 10 ; 2B
-  AGENT_INSTR_NUM_OFFSET = 12  ; 2B
-  AGENT_INSTR_VEC_OFFSET = 14 ; B[]
+  AgentRecSize dd 10 + AGENT_MAX_INSTRUCTIONS_N
+  AGENT_COORDS_OFFSET = 0 ; 4B
+  AGENT_ENERGY_OFFSET = 4 ; 2B
+  AGENT_CURR_INSTR_OFFSET = 6 ; 2B
+  AGENT_INSTR_NUM_OFFSET = 8  ; 2B
+  AGENT_INSTR_VEC_OFFSET = 10 ; B[]
   AgentInitEnergy dd 150 ; read from file (RFF)
   AgentTaskMaxInd dd 5
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, AgentClone
@@ -41,7 +41,6 @@ section '.data' data readable writeable
   AgentEnergyToClone dd 100 ; RFF   ; should be less then AgentMinEnergyToClone
   AgentMinEnergyToClone dd 200 ; RFF
   AgentClonedSuccessfully dd 0
-  AgentNextIndex dd 0
   AgentMutationOdds dd 10 ; RFF in percents
     
   ; food info

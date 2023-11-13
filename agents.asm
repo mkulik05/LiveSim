@@ -368,8 +368,6 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     rep movsb ; copying agent data
 
     sub edi, [AgentRecSize] ; got new agent addr back
-    mov eax, [AgentNextIndex]
-    mov [edi], eax
     mov [edi + AGENT_COORDS_OFFSET], ebx ; changing coords
     mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
@@ -393,7 +391,6 @@ proc AgentClone uses ecx esi edi ebx edx, ind
       inc ebx
     loop .CheckMutation
 
-    inc [AgentNextIndex]
     inc [AgentsSize]
   jmp @F
   TerminateCloning:

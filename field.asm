@@ -77,7 +77,6 @@ proc fillField
       mul esi
       mov edi, [AgentsAddr]
       add edi, eax
-      mov dword[edi], esi ; agent number (because we have indexing from zero, agents size will next agent id (used ONLY DURING GENERATION, before any agent died) )
 
       mov eax, [FieldSize]  ; may be optimised mb
       mul [FieldSize]
@@ -113,6 +112,5 @@ proc fillField
     jmp loopStart 
   stopLoop:
   mov eax, [AgentsSize]
-  mov [AgentNextIndex], eax
   ret  
 endp
