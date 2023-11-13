@@ -33,7 +33,7 @@ proc drawField uses ecx edi ebx edx ebp esi
     stdcall DrawRect, [ScreenBufAddr], ebx, ebp, [CellSizePX], [CellSizePX], eax
 
     add ebx, [CellSizePX]
-    mov eax, [ScreenWidth]
+    mov eax, [FieldWidth]
     sub eax, [XFieldOffset]
     dec eax
     cmp ebx, eax
@@ -45,7 +45,7 @@ proc drawField uses ecx edi ebx edx ebp esi
     @@:
     add edi, FieldCellSize
   loop .GoThoughFieldCells
-  invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
+  invoke SetDIBitsToDevice, [hDC], 0, 0, [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
 
@@ -198,7 +198,7 @@ endp
 
 proc calcCellSize
   ; assuming that height is less then width
-  mov eax, [ScreenHeight] 
+  mov eax, [FieldHeight] 
   sub eax, 2
   xor edx, edx
   div [FieldSize]
@@ -209,7 +209,7 @@ proc calcCellSize
   jmp .Finished
   .LessThen1PX:
     mov [CellSizePX], 1
-    mov eax, [ScreenHeight]
+    mov eax, [FieldHeight]
     mov [FieldSize], eax
     ; NEEDS TO BE DONE
   .Finished:
@@ -218,7 +218,7 @@ proc calcCellSize
 endp
 
 proc calcFieldOffsets
-  mov ebx, [ScreenHeight]
+  mov ebx, [FieldHeight]
   
   ; getting size of field in pixels
   mov eax, [FieldSize]
@@ -231,7 +231,7 @@ proc calcFieldOffsets
   mov [YFieldOffset], ebx
 
   ; same for X-axis
-  mov ebx, [ScreenWidth]
+  mov ebx, [FieldWidth]
   sub ebx, eax
   shr ebx, 1
   mov [XFieldOffset], ebx
@@ -269,7 +269,7 @@ endp
 ; x, y - in pixels 
 proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
   mov ecx, [height]
-  mov eax, [ScreenWidth]
+  mov eax, [FieldWidth]
   shl eax, 2
   mul [y]
   mov edi, [buffer]
@@ -290,7 +290,7 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
           mov ebx, [width]
           shl ebx, 2
           sub edi, ebx
-          mov ebx, [ScreenWidth]
+          mov ebx, [FieldWidth]
           shl ebx, 2
           add edi, ebx
       pop ecx
@@ -300,8 +300,8 @@ endp
 
 proc drawBkg
   mov edi, [ScreenBufAddr]
-  mov eax, [ScreenWidth]
-  mul [ScreenHeight]
+  mov eax, [FieldWidth]
+  mul [FieldHeight]
   mov ecx, eax
   mov eax, 0xFFFFFFFF
   rep stosd
@@ -313,9 +313,17 @@ proc GUIBasicInit
   ; getting screen X size and Y
   invoke GetSystemMetrics, SM_CXSCREEN
   mov [ScreenWidth], eax
+  mov [FieldXOffset], eax
 
   invoke GetSystemMetrics, SM_CYSCREEN
   mov [ScreenHeight], eax
+  mov [FieldHeight], eax
+  mov [FieldWidth], eax
+  mov [FieldYOffset], 0
+
+  sub [FieldXOffset], eax
+  shr [FieldXOffset], 1
+
 
   invoke GetModuleHandle, 0
   mov [wc.hInstance], eax
@@ -333,9 +341,9 @@ proc GUIBasicInit
   invoke GetDC, [hwnd]
   mov [hDC], eax
   mov [bmi.biSize], sizeof.BITMAPINFOHEADER
-  mov eax, [ScreenWidth]
+  mov eax, [FieldWidth]
   mov [bmi.biWidth], eax
-  mov eax, [ScreenHeight]
+  mov eax, [FieldHeight]
   mov [bmi.biHeight], eax
   mov [bmi.biPlanes], 1
   mov [bmi.biBitCount], 32

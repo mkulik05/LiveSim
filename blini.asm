@@ -4,7 +4,7 @@ entry start
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 1
+  FrameDelayMs dd 50
   TotalTacts dd ?
   HeapHandle dd ?
   TotalAllocSize dd ?
@@ -56,11 +56,16 @@ section '.data' data readable writeable
   ; GUI stuff
   EMPTY_COLOR = 0x00000000
   ScreenBufAddr dd 0
+  CellSizePX dd 0
   ScreenWidth dd 0
   ScreenHeight dd 0
-  CellSizePX dd 0
   XFieldOffset dd 0
   YFieldOffset dd 0
+
+  FieldHeight dd 0
+  FieldWidth dd 0
+  FieldXOffset dd 0
+  FieldYOffset dd 0
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
@@ -101,8 +106,8 @@ proc start
   add [TotalAllocSize], eax ; total size
 
   ; getting amount of bytes for screen buffer
-  mov eax, [ScreenWidth]
-  mul [ScreenHeight]
+  mov eax, [FieldWidth]
+  mul [FieldHeight]
   shl eax, 2
   add [TotalAllocSize], eax
 
@@ -220,7 +225,7 @@ proc startGame
     invoke GetTickCount
     mov [StartTimeMs], eax
 
-    invoke SetDIBitsToDevice, [hDC], 0, 0, [ScreenWidth], [ScreenHeight], 0, 0, 0, [ScreenHeight], [ScreenBufAddr], bmi, 0
+    invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
     stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
     cmp ecx, 0
