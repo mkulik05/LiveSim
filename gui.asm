@@ -45,7 +45,49 @@ proc drawField uses ecx edi ebx edx ebp esi
     @@:
     add edi, FieldCellSize
   loop .GoThoughFieldCells
-  invoke SetDIBitsToDevice, [hDC], 0, 0, [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
+  invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
+  ret 
+endp
+
+proc PrintStats 
+  local rect RECT
+
+  ; tact number
+  stdcall IntToStr, [TotalTacts], tactNStr, tactNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [FieldXOffset]
+  mov [rect.right], eax
+  mov [rect.top], TEXT_MARGIN_TOP
+  mov [rect.bottom], TEXT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect] 
+  invoke DrawText, [hDC], tactNStr, -1, eax, DT_LEFT
+
+  stdcall IntToStr, [AgentsSize], agentsNStr, agentsNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [FieldXOffset]
+  mov [rect.right], eax
+  
+  mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
+  mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect]
+  invoke DrawText, [hDC], agentsNStr, -1, eax, DT_LEFT
+
+  stdcall IntToStr, [FoodSize], foodNStr, foodNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [FieldXOffset]
+  mov [rect.right], eax
+  
+  mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
+  mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2 + TEXT_FONT_SIZE * 2 
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect]
+  invoke DrawText, [hDC], foodNStr, -1, eax, DT_LEFT
+
   ret 
 endp
 
@@ -239,7 +281,6 @@ proc calcFieldOffsets
   ret
 endp
 
-
 proc CalcAgentColor uses edx ebx ecx, energy 
     mov eax, [energy]
     xor edx, edx
@@ -299,12 +340,19 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
 endp
 
 proc drawBkg
+  local rect RECT
   mov edi, [ScreenBufAddr]
   mov eax, [FieldWidth]
   mul [FieldHeight]
   mov ecx, eax
-  mov eax, 0xFFFFFFFF
+  mov eax, GAME_BKG_COLOR
   rep stosd
+
+  lea eax, [rect]
+  invoke GetClientRect, [hwnd], eax
+  lea eax, [rect]
+  invoke FillRect, [hDC], eax, [bkgBrush]
+
   ret
 endp
 
@@ -349,6 +397,15 @@ proc GUIBasicInit
   mov [bmi.biBitCount], 32
   mov [bmi.biCompression], BI_RGB
 
+  ; setup font size
+  mov [lf.lfHeight], TEXT_FONT_SIZE
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hDC], eax
+
+  ; create brush for text bkg (to clear old text)
+  invoke CreateSolidBrush, GAME_BKG_COLOR
+  mov [bkgBrush], eax
+
   jmp @F
   error:
     invoke MessageBox, NULL, _error, NULL, MB_ICONERROR + MB_OK
@@ -385,6 +442,20 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   .keyDown:
     cmp [wparam], VK_ESCAPE
     je .wmdestroy
+    cmp [wparam], VK_SPACE
+    jne .coninueAnalisis
+    cmp [PauseGame], 0
+    je @F 
+    mov [PauseGame], 0
+    jmp .finish
+    @@:
+    mov [PauseGame], 1
+    .coninueAnalisis:
+    ; 'n' key
+    cmp [wparam], 0x4E
+    jne .finish
+    mov [PutOnPauseNextTact], 1
+    mov [PauseGame], 0
   jmp .finish
 
   .wmdestroy:

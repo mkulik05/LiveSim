@@ -5,11 +5,16 @@ include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
   FrameDelayMs dd 50
-  TotalTacts dd ?
+  PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
+  TotalTacts dd 0
   HeapHandle dd ?
   TotalAllocSize dd ?
   StartTimeMs dd ?
   StopGame dd 0
+  PauseGame dd 1
+  PutOnPauseNextTact dd 0
+
+
   
   ; field data
   FieldSize dd 512
@@ -66,6 +71,13 @@ section '.data' data readable writeable
   FieldWidth dd 0
   FieldXOffset dd 0
   FieldYOffset dd 0
+
+  tactNStr TCHAR 'Tact N: ', 0, 0, 0, 0, 0, 0, 0, 0
+  tactNStrStartI = 8
+  agentsNStr TCHAR 'Agents N: ', 0, 0, 0, 0, 0, 0, 0, 0
+  agentsNStrStartI = 10
+  foodNStr TCHAR 'Food N: ', 0, 0, 0, 0, 0, 0, 0, 0
+  foodNStrStartI = 8
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
@@ -73,6 +85,12 @@ section '.data' data readable writeable
   hwnd dd 0
   bmi BITMAPINFOHEADER
   msg MSG
+  TEXT_FONT_SIZE = 50
+  TEXT_MARGIN_LEFT = 20
+  TEXT_MARGIN_TOP = 20
+  GAME_BKG_COLOR = 00FFFFFFh
+  bkgBrush dd ?
+  lf LOGFONT
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0
@@ -145,71 +163,6 @@ proc start
   stdcall drawField
   stdcall startGame
 
-; just to print total number of tacts
-    xor edx, edx
-    mov ebx, 10
-    mov eax, ebp
-    xor edi, edi
-    mov esi, deathMsg
-    
-
-    xor ecx, ecx
-    @@:
-
-        inc ecx
-        inc esi
-
-        div ebx
-        add edx, '0'
-        mov [esi], edx
-        xor edx, edx
-    
-
-        cmp eax, 0
-        
-    jnz @b
-
-    inc esi
-    mov dword[esi], ' '
-    pop eax
-    
-
-    xor ecx, ecx
-    @@:
-
-        inc ecx
-        inc esi
-
-        div ebx
-        add edx, '0'
-        mov [esi], edx
-        xor edx, edx
-    
-
-        cmp eax, 0
-        
-    jnz @b
-
-inc esi
-    mov dword[esi], ' '
-    pop eax
-    
-
-    xor ecx, ecx
-    @@:
-
-        inc ecx
-        inc esi
-
-        div ebx
-        add edx, '0'
-        mov [esi], edx
-        xor edx, edx
-    
-
-        cmp eax, 0
-        
-    jnz @b
   invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
   ; cleaning up
   invoke HeapFree, [HeapHandle], 0, [FieldAddr]
@@ -225,7 +178,9 @@ proc startGame
     invoke GetTickCount
     mov [StartTimeMs], eax
 
+    stdcall PrintStats  
     invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
+
     stdcall ProcessWindowMsgs
     mov ecx, [AgentsSize]
     cmp ecx, 0
@@ -331,6 +286,7 @@ proc startGame
 
         .SkipFoodGrowing:
         inc ebp
+        mov [TotalTacts], ebp
       cmp [StopGame], 1
       je GameOver
       
@@ -348,10 +304,28 @@ proc startGame
       invoke Sleep, ecx
       @@:
     
+    cmp [PutOnPauseNextTact], 1
+    jne .IsPausedCheck
+    mov [PauseGame], 1
+    mov [PutOnPauseNextTact], 0
+
+    .IsPausedCheck:
+
+    cmp [PauseGame], 1
+    jne gameLoop
+
+    @@:
+
+    .Paused:
+      cmp [PauseGame], 0
+      je gameLoop
+      invoke Sleep, PauseWaitTime 
+      stdcall ProcessWindowMsgs
+      jmp .Paused
+
     jmp gameLoop
 
   GameOver:
-  mov [TotalTacts], ebp
   ret
 endp
 
@@ -386,7 +360,7 @@ section '.idata' import data readable writeable
           
 
   import kernel32,\
-        Sleep, 'Sleep', \
+         Sleep, 'Sleep', \
          GetProcessHeap, 'GetProcessHeap',\
          HeapAlloc, 'HeapAlloc',\
          HeapFree, 'HeapFree',\
@@ -397,6 +371,8 @@ section '.idata' import data readable writeable
          GetTickCount, 'GetTickCount'
 
   import user32,\
+         GetClientRect, 'GetClientRect', \
+         DrawText, 'DrawTextA', \
          MessageBox, 'MessageBoxA', \
          GetSystemMetrics, 'GetSystemMetrics', \
          LoadIcon, 'LoadIconA', \
@@ -408,8 +384,12 @@ section '.idata' import data readable writeable
          TranslateMessage, 'TranslateMessage', \
          DispatchMessage, 'DispatchMessageA', \
          DefWindowProc, 'DefWindowProcA', \
-         PostQuitMessage, 'PostQuitMessage'
+         PostQuitMessage, 'PostQuitMessage', \
+         FillRect, 'FillRect'
   import gdi32,\
+         CreateSolidBrush, 'CreateSolidBrush',\
+         SelectObject, 'SelectObject', \
+         CreateFontIndirect, 'CreateFontIndirectA', \
          SetDIBitsToDevice, 'SetDIBitsToDevice'
   include 'field.asm'
   include 'assistive.asm'

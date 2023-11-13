@@ -4,3 +4,4 @@
 *.run
 main.py
 server*
+*.err
