@@ -1,10 +1,8 @@
 
 ; BP registor is used inside!!!
-proc AgentMoveTop uses esi edi ebx edx ebp, ind
+proc AgentMoveTop uses esi edi ebx edx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
-  mov ebx, eax
-  ; DON'T TOUCH EBX ANYMORE
   mul [AgentRecSize]
   add esi, eax
 
@@ -15,16 +13,16 @@ proc AgentMoveTop uses esi edi ebx edx ebp, ind
   ; check that target cell empty
   neg edi
   mov eax, edi
-  mov ebp, [FieldAddr]
+  mov ebx, [FieldAddr]
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2 
-  add ebp, eax
-  test dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
+  add ebx, eax
+  test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
   
   mov eax, 0xFFFFFFFF
   xor eax, FIELD_AGENT_STATE
-  and dword[ebp], eax
+  and dword[ebx], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   ; edi is already negative
@@ -34,25 +32,23 @@ proc AgentMoveTop uses esi edi ebx edx ebp, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   ; edi is already negative
-  or dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub dword[esi + AGENT_ENERGY_OFFSET], eax
 
-  test dword[ebp + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+    stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
 
   .finish:
   
   ret
 endp
 
-proc AgentMoveDown uses esi edi ebx edx ebp, ind
+proc AgentMoveDown uses esi edi ebx edx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
-  mov ebx, eax
-  ; DON'T TOUCH EBX ANYMORE
   mul [AgentRecSize]
   add esi, eax
 
@@ -64,16 +60,16 @@ proc AgentMoveDown uses esi edi ebx edx ebp, ind
   jge .finish; agent is at bottom line - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [FieldAddr]
+  mov ebx, [FieldAddr]
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
-  add ebp, eax
-  test dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
+  add ebx, eax
+  test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov eax, 0xFFFFFFFF
   xor eax, FIELD_AGENT_STATE
-  and dword[ebp], eax
+  and dword[ebx], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
@@ -83,25 +79,23 @@ proc AgentMoveDown uses esi edi ebx edx ebp, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
 
-  or dword[ebp + edi * FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test dword[ebp + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+    stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
 
   .finish:
   
   ret
 endp
 
-proc AgentMoveRight uses esi edi ebx edx ebp, ind
+proc AgentMoveRight uses esi edi ebx edx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
-  mov ebx, eax
-  ; DON'T TOUCH EBX ANYMORE
   mul [AgentRecSize]
   add esi, eax
 
@@ -114,16 +108,16 @@ proc AgentMoveRight uses esi edi ebx edx ebp, ind
   je .finish; agent is at right edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [FieldAddr]
+  mov ebx, [FieldAddr]
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
-  add ebp, eax
-  test dword[ebp + FieldCellSize], FIELD_AGENT_STATE
+  add ebx, eax
+  test dword[ebx + FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov eax, 0xFFFFFFFF
   xor eax, FIELD_AGENT_STATE
-  and dword[ebp], eax
+  and dword[ebx], eax
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
@@ -132,25 +126,23 @@ proc AgentMoveRight uses esi edi ebx edx ebp, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
-  or dword[ebp + FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test dword[ebp + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+    stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
 
   .finish:
 
   ret
 endp
 
-proc AgentMoveLeft uses esi edi ebx edx ebp, ind
+proc AgentMoveLeft uses esi edi ebx edx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
-  mov ebx, eax
-  ; DON'T TOUCH EBX ANYMORE
   mul [AgentRecSize]
   add esi, eax
 
@@ -162,16 +154,16 @@ proc AgentMoveLeft uses esi edi ebx edx ebp, ind
   je .finish; agent is at left edge - so skip move, but energy is decreased
 
   ; check that target cell empty
-  mov ebp, [FieldAddr]
+  mov ebx, [FieldAddr]
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
-  add ebp, eax
-  test dword[ebp - FieldCellSize], FIELD_AGENT_STATE
+  add ebx, eax
+  test dword[ebx - FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov eax, 0xFFFFFFFF
   xor eax, FIELD_AGENT_STATE
-  and dword[ebp], eax
+  and dword[ebx], eax
     
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
 
@@ -180,14 +172,14 @@ proc AgentMoveLeft uses esi edi ebx edx ebp, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
-  or dword[ebp - FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx - FieldCellSize], FIELD_AGENT_STATE
 
   mov eax, [AgentEnergyToMove]
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
-  test dword[ebp - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
-    stdcall FeedAgent, ebx, [esi + AGENT_COORDS_OFFSET]
+    stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
 
   .finish:
   
