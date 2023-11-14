@@ -153,33 +153,11 @@ proc BufMoveAgent uses ecx edi edx ebx, src, dest, energy
   ret
 endp
 
-proc BufCloneCell uses ecx edi edx, src, dest, energy
-  local X dd ?
-  local Y dd ?
-
-  mov eax, [src]
-  xor edx, edx
-  div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
-
-  ; getting cell Y coord in pxs
-  mov eax, [Y]
-  mul [CellSizePX]
-  add eax, [YFieldOffset]
-  mov [Y], eax
-  mul [ScreenWidth]
-  mov ebx, eax
-
-  mov eax, [X]
-  mul [CellSizePX]
-  add ebx, eax
-  add ebx, [XFieldOffset]
-  
-  mov edi, [ScreenBufAddr]
+proc BufCloneCell uses ecx, src, dest, energy
   stdcall CalcAgentColor, [energy]
-  stdcall bufUpdateCellColor, [src], eax
-  stdcall bufUpdateCellColor, [dest], eax
+  mov ecx, eax
+  stdcall bufUpdateCellColor, [src], ecx
+  stdcall bufUpdateCellColor, [dest], ecx
   ret
 endp
 
