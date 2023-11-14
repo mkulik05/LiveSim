@@ -17,13 +17,13 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 16
+  FieldSize dd 4
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
   FIELD_FOOD_STATE = 1000_0000_0000_0000_0000_0000_0000_0000b
   FIELD_SAFE_MASK = 0011_1111_1111_1111_1111_1111_1111_1111b
-  
+
   ; agents vec data
   AGENT_MAX_INSTRUCTIONS_N = 15 ; RFF
   AgentRecSize dd 10 + AGENT_MAX_INSTRUCTIONS_N
@@ -93,8 +93,8 @@ section '.data' data readable writeable
   bkgBrush dd ?
   lf LOGFONT
   savedMsg db 'saved successfullyu', 0
-  fname1 TCHAR 'coolfile1', 0
-  fname2 TCHAR 'coolfile2', 0
+  fname1 TCHAR 'C:\Users\mk\Documents\blini\ws\coolfile1', 0
+  fname2 TCHAR 'C:\Users\mk\Documents\blini\ws\coolfile2', 0
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0

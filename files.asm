@@ -209,7 +209,7 @@ proc loadField uses esi edi ebx edx, fName
     mov ebx, [esi + AGENT_COORDS_OFFSET]
     mov eax, [lastI]
     mov [edi + ebx * FieldCellSize], eax 
-    or dword[esi + ebx * FieldCellSize], FIELD_AGENT_STATE
+    or dword[edi + ebx * FieldCellSize], FIELD_AGENT_STATE
     inc [lastI]
     add esi, [AgentRecSize]
   pop ecx
@@ -254,10 +254,8 @@ proc loadField uses esi edi ebx edx, fName
     mov ebx, [esi + FOOD_COORDS_OFFSET]
     mov eax, [lastI]
     mov [edi + ebx * FieldCellSize], eax 
-    or dword[esi + ebx * FieldCellSize], FIELD_FOOD_STATE
+    or dword[edi + ebx * FieldCellSize], FIELD_FOOD_STATE
     inc [lastI]
-    add esi, [AgentRecSize]
-
     add esi, [FoodRecSize]
     pop ecx
 
@@ -269,7 +267,6 @@ proc loadField uses esi edi ebx edx, fName
   .skipFoodSaving:
 
   invoke CloseHandle, [hF]
-  invoke MessageBox, 0, savedMsg, savedMsg, MB_OK
   mov [TotalTacts], 0
   stdcall start
   ret
