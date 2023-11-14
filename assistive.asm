@@ -45,22 +45,40 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
     mov edi, [Addr]
     mov eax, [ind]
     mul dword[ItemSize] 
-    add edi, eax ; got delete agent addr
+    add edi, eax ; got delete agent addк
 
+    ; clearing index from field cell (the one that is deleted)
     mov ebx, [CoordsOffset]
-    mov esi, [edi + ebx] ; coords of item
+    mov eax, [edi + ebx] ; coords of item
     mov ebx, [FieldAddr]
+    shl eax, 2
+    add ebx, eax 
+    and dword[ebx], 1100_0000_0000_0000_0000_0000_0000_0000b
 
-    ; ; NEED TO BE FIXED IN THE FUTURE
-    ; mov byte[ebx + esi], 0 ; clear game field
-    
     mov eax, [PSize]
     mov eax, [eax]
     cmp eax, 1
     jne @F
       jmp finished
     @@:
+
     dec eax ; cause indexes from zero
+    push eax
+
+    ; updating index of prev last element (that will be swapped with removed) in vector
+    mul [ItemSize] 
+    mov esi, [Addr]
+    add esi, eax ; got addr of last element
+    mov ebx, [CoordsOffset]
+    mov eax, [esi + ebx] ; got last element coords
+    mov esi, [FieldAddr]
+    shl eax, 2
+    add esi, eax 
+    and dword[esi], 1100_0000_0000_0000_0000_0000_0000_0000b
+    mov eax, [ind]
+    or dword[esi], eax
+
+    pop eax
     cmp eax, [ind]
     jne @F
       jmp finished

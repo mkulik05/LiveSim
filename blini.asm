@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 4
+  FieldSize dd 32
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
