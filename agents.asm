@@ -315,9 +315,6 @@ proc AgentClone uses ecx esi edi ebx edx, ind
 
   .StartCloning:  
 
-    movzx eax, word[esi + AGENT_COORDS_OFFSET]
-    movzx edx, word[esi + AGENT_ENERGY_OFFSET]
-
     mov eax, [AgentEnergyToClone]
     sub word[esi + AGENT_ENERGY_OFFSET], ax
     
@@ -339,7 +336,8 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov word[esi + AGENT_ENERGY_OFFSET], ax
     ; because of movsb energy will be saved to clone too
 
-    movzx ebx, word[esi + AGENT_COORDS_OFFSET]
+    mov ebx, [esi + AGENT_COORDS_OFFSET]
+    
     stdcall BufCloneCell, ebx, edi, eax
 
     ; getting new agent addr
