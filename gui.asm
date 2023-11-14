@@ -178,25 +178,8 @@ proc BufCloneCell uses ecx edi edx, src, dest, energy
   
   mov edi, [ScreenBufAddr]
   stdcall CalcAgentColor, [energy]
-  mov ebx, eax ; getting old cell color
-
-  mov eax, [dest]
-  xor edx, edx
-  div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
-
-  ; getting cell Y coord in pxs
-  mov eax, [Y]
-  mul [CellSizePX]
-  add eax, [YFieldOffset]
-  mov [Y], eax
-
-  mov eax, [X]
-  mul [CellSizePX]
-  add eax, [XFieldOffset]
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ebx
-
+  stdcall bufUpdateCellColor, [src], eax
+  stdcall bufUpdateCellColor, [dest], eax
   ret
 endp
 
@@ -293,7 +276,12 @@ endp
 proc CalcAgentColor uses edx ebx ecx, energy 
     mov eax, [energy]
     xor edx, edx
-
+    cmp eax, [AgentMinEnergyToClone]
+    jb @F
+      mov eax, [AgentMinEnergyToClone] 
+      ; if energy if more then max value, putting max brightness
+      ; such case mb after feeding, but before cloning (it's 2 tacts, but redrawing is each tact)
+    @@:
     mov ecx, 0xFF
     mul ecx
     xor edx, edx
@@ -306,7 +294,6 @@ endp
 proc CalcFoodColor uses edx ebx ecx, amount 
     mov eax, [amount]
     xor edx, edx
-
     mov ecx, 0xFF
     mul ecx
     xor edx, edx

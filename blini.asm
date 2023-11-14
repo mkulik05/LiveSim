@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 50
+  FrameDelayMs dd 10
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 4
+  FieldSize dd 1024
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b

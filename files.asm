@@ -116,7 +116,7 @@ proc saveField uses esi edi ebx edx, fName
   .skipFoodSaving:
 
   invoke CloseHandle, [hF]
-  invoke MessageBox, 0, savedMsg, savedMsg, MB_OK
+  ; invoke MessageBox, 0, savedMsg, savedMsg, MB_OK
   ret
 endp
 
