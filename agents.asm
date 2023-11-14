@@ -329,10 +329,9 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov ebx, [FieldAddr]
     mov eax, [esi + AGENT_COORDS_OFFSET]
     shl eax, 2
-    add ebx, eax
-    xor dword[ebx], FIELD_AGENT_STATE ; clear old cell
-    sub ebx, eax
     or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE ; updated new cell
+
+    
     
     ; updating agent energy (it will be splitted between it and clone)
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
@@ -364,6 +363,11 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     jz @F 
       stdcall FeedAgent, [AgentsSize], ebx
     @@:
+
+    ; writing new agent id to field
+    and dword[esi + ebx * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+    mov eax, [AgentsSize]
+    or dword[esi + ebx * FieldCellSize], eax
     movzx ecx, word[edi + AGENT_INSTR_NUM_OFFSET]
     xor ebx, ebx
     .CheckMutation:

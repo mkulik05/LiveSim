@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 100
+  FrameDelayMs dd 50
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 32
+  FieldSize dd 4
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -39,10 +39,10 @@ section '.data' data readable writeable
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 100 ; RFF   ; should be less then AgentMinEnergyToClone
-  AgentMinEnergyToClone dd 250 ; RFF
+  AgentEnergyToClone dd 10 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentMinEnergyToClone dd 25 ; RFF
   AgentClonedSuccessfully dd 0
-  AgentMutationOdds dd 10 ; RFF in percents
+  AgentMutationOdds dd 100 ; RFF in percents
     
   ; food info
   FoodMaxValue dd 200 ; RFF
