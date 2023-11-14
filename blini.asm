@@ -250,10 +250,10 @@ proc startGame
       stdcall AgentClone, esi
 
       ; in case of successful cloning, doing loop one more time (to process new agent too)
-      cmp [AgentClonedSuccessfully], 1
-      jne @F
-        inc ecx 
-      @@:
+      ; cmp [AgentClonedSuccessfully], 1
+      ; jne @F
+      ;   inc ecx 
+      ; @@:
       jmp NextAgent
 
       ContinueExecution: 
@@ -283,12 +283,12 @@ proc startGame
         @@:
         stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
 
-        cmp ebx, 5
-        jne @F
-        cmp [AgentClonedSuccessfully], 0
-        je @F
-          inc ecx 
-        @@:
+        ; cmp ebx, 5
+        ; jne @F
+        ; cmp [AgentClonedSuccessfully], 0
+        ; je @F
+        ;   inc ecx 
+        ; @@:
 
         skipMove:
 
