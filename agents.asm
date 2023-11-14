@@ -208,18 +208,12 @@ proc FeedAgent uses ecx esi edi ebx, AgentI, coords
   add edi, eax
   xor dword[edi], FIELD_FOOD_STATE
 
-  mov ecx, [FoodSize]
-  xor esi, esi
+  mov eax, dword[edi]
+  and eax, FIELD_SAFE_MASK
+  push eax
   mov edi, [FoodAddr]
-  FindFoodEl:     
-    mov eax, [edi + FOOD_COORDS_OFFSET]
-    cmp eax, [coords] ; checking did we got to correct record
-    je FoundEl      
-
-    add edi, [FoodRecSize]
-    inc esi
-  loop FindFoodEl
-  jmp FoundEl.Exit ; not found food, skipping all stuff
+  mul [FoodRecSize]
+  add edi, eax
   
   FoundEl:
     ; getting food amount
@@ -232,8 +226,8 @@ proc FeedAgent uses ecx esi edi ebx, AgentI, coords
     add edi, eax
 
     add word [edi + AGENT_ENERGY_OFFSET], bx
-
-    stdcall removeVecItem, [FoodAddr], FoodSize, [FoodRecSize], FOOD_COORDS_OFFSET, esi
+    pop eax
+    stdcall removeVecItem, [FoodAddr], FoodSize, [FoodRecSize], FOOD_COORDS_OFFSET, eax
   .Exit:
 
   ret

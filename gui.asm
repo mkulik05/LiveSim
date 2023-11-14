@@ -6,17 +6,19 @@ proc drawField uses ecx edi ebx edx ebp esi
   mov ebx, [XFieldOffset] ; X coords offset
   mov ebp, [YFieldOffset] ; Y coords offset 
 
-  mov esi, [FoodAddr] ; will store current food addr (needed to get food amount quickly)
-  mov edx, [AgentsAddr] ; will store current agent addr
+  ; mov esi, [FoodAddr] ; will store current food addr (needed to get food amount quickly)
+  ; mov edx, [AgentsAddr] ; will store current agent addr
   .GoThoughFieldCells:
     mov eax, EMPTY_COLOR ; storing there color
     test dword[edi], FIELD_AGENT_STATE
     jz @F
-    ; backing up esi
-    push esi 
-    mov esi, edx
+
+    mov eax, dword[edi]
+    and eax, FIELD_SAFE_MASK
+    mov esi, [AgentsAddr]
+    mul [AgentRecSize]
+    add esi, eax
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
-    pop esi
     
     stdcall CalcAgentColor, eax
     add edx, [AgentRecSize]
@@ -25,10 +27,14 @@ proc drawField uses ecx edi ebx edx ebp esi
     test dword[edi], FIELD_FOOD_STATE
     jz .stopColorSelection
     
+    mov eax, dword[edi]
+    and eax, FIELD_SAFE_MASK
+    mov esi, [FoodAddr]
+    mul [FoodRecSize]
+    add esi, eax
     movzx eax, word[esi + FOOD_AMOUNT_OFFSET]
     stdcall CalcFoodColor, eax
 
-    add esi, [FoodRecSize]
     .stopColorSelection:
     stdcall DrawRect, [ScreenBufAddr], ebx, ebp, [CellSizePX], [CellSizePX], eax
 
@@ -44,7 +50,10 @@ proc drawField uses ecx edi ebx edx ebp esi
       mov ebx, [XFieldOffset]
     @@:
     add edi, FieldCellSize
-  loop .GoThoughFieldCells
+  dec ecx 
+  cmp ecx, 0 
+  ja .GoThoughFieldCells
+
   invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
@@ -453,9 +462,33 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     .coninueAnalisis:
     ; 'n' key
     cmp [wparam], 0x4E
-    jne .finish
+    jne @F
     mov [PutOnPauseNextTact], 1
     mov [PauseGame], 0
+
+    @@:
+    ; 's' key - save field 
+    cmp [wparam], 0x53
+    jne @F
+    stdcall saveField, fname1
+
+    @@:
+    ; 'd' key - save configuration
+    cmp [wparam], 0x44
+    jne @F
+    stdcall saveSettings, fname2
+
+    @@:
+    ; 'l' key - load configuration
+    cmp [wparam], 0x4C
+    jne @F
+    stdcall loadSettings, fname2
+
+    @@:
+    ; 'k' key - load field
+    cmp [wparam], 0x4B
+    jne .finish 
+    stdcall loadField, fname1
   jmp .finish
 
   .wmdestroy:

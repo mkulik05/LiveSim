@@ -27,7 +27,8 @@ proc fillField
       cmp eax, [FoodSize]
       jle EmptyCell 
 
-      mov eax, FIELD_FOOD_STATE
+      mov eax, [FoodSize]
+      or eax, FIELD_FOOD_STATE
 
       ; food cell - oldest bit is 1
       mov esi, [FieldAddr]
@@ -65,7 +66,8 @@ proc fillField
       jle EmptyCell
 
       ; filling cell in game field and then agents vector
-      mov eax, FIELD_AGENT_STATE
+      mov eax, [AgentsSize]
+      or eax, FIELD_AGENT_STATE
 
       ; agent cell - pre oldest bit is 1
       mov esi, [FieldAddr]

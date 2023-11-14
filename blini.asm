@@ -1,5 +1,5 @@
 format PE GUI 4.0
-entry start
+entry EntryPoint
 
 include 'win32a.inc'
 section '.data' data readable writeable
@@ -13,16 +13,17 @@ section '.data' data readable writeable
   StopGame dd 0
   PauseGame dd 1
   PutOnPauseNextTact dd 0
+  SettingsToSave dd AgentInitEnergy, AgentEnergyToMove, AgentEnergyToClone, AgentMinEnergyToClone, AgentMutationOdds, FoodMaxValue, TimeForFoodToGrow, FoodGrowMaxValue, FoodMaxInitAmount
+  AMOUNT_OF_SETTINGS = 9
 
-
-  
   ; field data
-  FieldSize dd 512
+  FieldSize dd 16
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
   FIELD_FOOD_STATE = 1000_0000_0000_0000_0000_0000_0000_0000b
-
+  FIELD_SAFE_MASK = 0011_1111_1111_1111_1111_1111_1111_1111b
+  
   ; agents vec data
   AGENT_MAX_INSTRUCTIONS_N = 15 ; RFF
   AgentRecSize dd 10 + AGENT_MAX_INSTRUCTIONS_N
@@ -39,7 +40,7 @@ section '.data' data readable writeable
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
   AgentEnergyToClone dd 100 ; RFF   ; should be less then AgentMinEnergyToClone
-  AgentMinEnergyToClone dd 200 ; RFF
+  AgentMinEnergyToClone dd 250 ; RFF
   AgentClonedSuccessfully dd 0
   AgentMutationOdds dd 10 ; RFF in percents
     
@@ -71,6 +72,7 @@ section '.data' data readable writeable
   FieldXOffset dd 0
   FieldYOffset dd 0
 
+  isGUIInited dd 0
   tactNStr TCHAR 'Tact N: ', 0, 0, 0, 0, 0, 0, 0, 0
   tactNStrStartI = 8
   agentsNStr TCHAR 'Agents N: ', 0, 0, 0, 0, 0, 0, 0, 0
@@ -90,6 +92,9 @@ section '.data' data readable writeable
   GAME_BKG_COLOR = 00FFFFFFh
   bkgBrush dd ?
   lf LOGFONT
+  savedMsg db 'saved successfullyu', 0
+  fname1 TCHAR 'coolfile1', 0
+  fname2 TCHAR 'coolfile2', 0
   allocFailedMsg db 'allocation failed', 0
   deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg2 db 'Everyone died', 0
@@ -97,7 +102,34 @@ section '.data' data readable writeable
 
 section '.text' code readable executable
 
+proc EntryPoint
+  stdcall Initialisation
+  stdcall fillField
+  stdcall start
+  ret 
+endp
+
 proc start
+
+  push [FoodSize]
+  push [AgentsSize]
+
+
+  stdcall drawBkg
+  stdcall calcCellSize ; will put result into CellSizePX constant
+  stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
+  stdcall drawField
+  stdcall startGame
+
+  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
+  ; cleaning up
+  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
+  invoke ExitProcess, 0
+  ret
+endp
+
+; based on fieldSize calc TotalAllocSize, allocMem, calculate agent and food vectors addrs, screen buf addr
+proc Initialisation
   mov eax, FieldCellSize
   mul [FieldSize]
   mul [FieldSize]
@@ -112,9 +144,14 @@ proc start
   mov [FoodCapacity], eax
   mov [AgentsCapacity], eax
 
+  
+  cmp [isGUIInited], 1
+  je @F
   push eax
   stdcall GUIBasicInit
+  mov [isGUIInited], 1
   pop eax
+  @@:
 
   ; getting amount of bytes
   mov edx, [AgentRecSize]
@@ -149,23 +186,6 @@ proc start
   mul [FoodRecSize] 
   add ebx, eax
   mov [ScreenBufAddr], ebx
-
-  stdcall fillField
-
-  push [FoodSize]
-  push [AgentsSize]
-
-
-  stdcall drawBkg
-  stdcall calcCellSize ; will put result into CellSizePX constant
-  stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
-  stdcall drawField
-  stdcall startGame
-
-  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
-  ; cleaning up
-  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
-  invoke ExitProcess, 0
   ret
 endp
 
@@ -174,13 +194,32 @@ proc startGame
   xor ebp, ebp ; tact counter
 
   gameLoop:
-    invoke GetTickCount
-    mov [StartTimeMs], eax
-
     stdcall PrintStats  
     invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
-
     stdcall ProcessWindowMsgs
+    
+    cmp [PutOnPauseNextTact], 1
+    jne .IsPausedCheck
+    mov [PauseGame], 1
+    mov [PutOnPauseNextTact], 0
+
+    .IsPausedCheck:
+
+    cmp [PauseGame], 1
+    jne continueGameLoop
+
+    @@:
+
+    .Paused:
+      cmp [PauseGame], 0
+      je continueGameLoop
+      invoke Sleep, PauseWaitTime 
+      stdcall ProcessWindowMsgs
+      jmp .Paused
+
+    continueGameLoop:
+    invoke GetTickCount
+    mov [StartTimeMs], eax
     mov ecx, [AgentsSize]
     cmp ecx, 0
     jle GameOver ; all agents died
@@ -284,6 +323,7 @@ proc startGame
         stdcall GrowFood
 
         .SkipFoodGrowing:
+
         inc ebp
         mov [TotalTacts], ebp
       cmp [StopGame], 1
@@ -302,25 +342,6 @@ proc startGame
       
       invoke Sleep, ecx
       @@:
-    
-    cmp [PutOnPauseNextTact], 1
-    jne .IsPausedCheck
-    mov [PauseGame], 1
-    mov [PutOnPauseNextTact], 0
-
-    .IsPausedCheck:
-
-    cmp [PauseGame], 1
-    jne gameLoop
-
-    @@:
-
-    .Paused:
-      cmp [PauseGame], 0
-      je gameLoop
-      invoke Sleep, PauseWaitTime 
-      stdcall ProcessWindowMsgs
-      jmp .Paused
 
     jmp gameLoop
 
@@ -367,7 +388,11 @@ section '.idata' import data readable writeable
          wsprintf, 'wsprintfA',\
          msvcrt, 'msvcrt.dll',\
          GetModuleHandle, 'GetModuleHandleA', \
-         GetTickCount, 'GetTickCount'
+         GetTickCount, 'GetTickCount', \
+         CreateFile, 'CreateFileA', \
+         WriteFile, 'WriteFile', \
+         ReadFile, 'ReadFile', \
+         CloseHandle, 'CloseHandle'
 
   import user32,\
          GetClientRect, 'GetClientRect', \
@@ -394,3 +419,4 @@ section '.idata' import data readable writeable
   include 'assistive.asm'
   include 'gui.asm'
   include 'agents.asm'
+  include 'files.asm'
