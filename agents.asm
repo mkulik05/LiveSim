@@ -285,13 +285,14 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     inc ebx
     push edi ; save coords to check
     mov ecx, ebx
+    xor edx, edx
     jmp checkIsCellEmpty
   @@:
     cmp ebx, 0
     je TerminateCloning ; rejected cloning (no space to move clone to)
   
   mov ecx, ebx
-  xor edx, edx ; flag, was agent found or not
+  xor edx, edx ; flag, was available place for agent clone found
   checkIsCellEmpty:
     pop edi
     mov ebx, [FieldAddr]
