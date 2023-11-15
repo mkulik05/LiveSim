@@ -71,6 +71,7 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
     add esi, eax ; got addr of last element
     mov ebx, [CoordsOffset]
     mov eax, [esi + ebx] ; got last element coords
+     
     mov esi, [FieldAddr]
     shl eax, 2
     add esi, eax 

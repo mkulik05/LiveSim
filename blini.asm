@@ -215,7 +215,7 @@ proc startGame
       je continueGameLoop
       invoke Sleep, PauseWaitTime 
       stdcall ProcessWindowMsgs
-      jmp .Paused
+    jmp .Paused
 
     continueGameLoop:
     invoke GetTickCount
