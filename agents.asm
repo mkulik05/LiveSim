@@ -218,6 +218,9 @@ proc FeedAgent uses ecx esi edi ebx, AgentI, coords
     add edi, eax
 
     add word [edi + AGENT_ENERGY_OFFSET], bx
+    jnc @F  ; if energy overflowed, storing maximal possible value
+      mov word [edi + AGENT_ENERGY_OFFSET], 0xFFFF
+    @@:
     pop eax
     stdcall removeVecItem, [FoodAddr], FoodSize, [FoodRecSize], FOOD_COORDS_OFFSET, eax
   .Exit:

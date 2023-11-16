@@ -257,6 +257,7 @@ proc CalcAgentColor uses edx ebx ecx, energy
     cmp eax, [AgentMinEnergyToClone]
     jb @F
       mov eax, [AgentMinEnergyToClone] 
+      jmp .stop
       ; if energy if more then max value, putting max brightness
       ; such case mb after feeding, but before cloning (it's 2 tacts, but redrawing is each tact)
     @@:
@@ -266,17 +267,24 @@ proc CalcAgentColor uses edx ebx ecx, energy
     mov ecx, [AgentMinEnergyToClone]
     div ecx
     shl eax, 16
+    .stop:
   ret
 endp
 
 proc CalcFoodColor uses edx ebx ecx, amount 
     mov eax, [amount]
+    cmp eax, [FoodMaxValue]
+    jb @F
+      mov eax, [FoodMaxValue] 
+      jmp .stop
+    @@:
     xor edx, edx
     mov ecx, 0xFF
     mul ecx
     xor edx, edx
     mov ecx, [FoodMaxValue]
     div ecx
+    .stop:
   ret
 endp
 

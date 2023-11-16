@@ -44,6 +44,7 @@ proc fillField
       sub eax, ecx
       mov dword[edi + FOOD_COORDS_OFFSET], eax ; curr coords
       stdcall RandInt, [FoodMaxInitAmount]
+      inc eax ; should be at least 1
       mov word[edi + FOOD_AMOUNT_OFFSET], ax ; save food amount
 
       mov eax, [FoodMaxValue]

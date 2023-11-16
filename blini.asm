@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 10
+  FrameDelayMs dd 50
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 1024
+  FieldSize dd 8
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -25,27 +25,27 @@ section '.data' data readable writeable
   FIELD_SAFE_MASK = 0011_1111_1111_1111_1111_1111_1111_1111b
 
   ; agents vec data
-  AGENT_MAX_INSTRUCTIONS_N = 15 ; RFF
+  AGENT_MAX_INSTRUCTIONS_N = 10 ; RFF
   AgentRecSize dd 10 + AGENT_MAX_INSTRUCTIONS_N
   AGENT_COORDS_OFFSET = 0 ; 4B
   AGENT_ENERGY_OFFSET = 4 ; 2B
   AGENT_CURR_INSTR_OFFSET = 6 ; 2B
   AGENT_INSTR_NUM_OFFSET = 8  ; 2B
   AGENT_INSTR_VEC_OFFSET = 10 ; B[]
-  AgentInitEnergy dd 150 ; read from file (RFF)
+  AgentInitEnergy dd 200 ; read from file (RFF)
   AgentTaskMaxInd dd 5
   AgentTasks dd AgentMoveTop, AgentMoveRight, AgentMoveDown, AgentMoveLeft, AgentSleep, AgentClone
   AgentsCapacity dd ?
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 100 ; RFF   ; should be less then AgentMinEnergyToClone
-  AgentMinEnergyToClone dd 250 ; RFF
+  AgentEnergyToClone dd 50 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentMinEnergyToClone dd 350 ; RFF
   AgentClonedSuccessfully dd 0
-  AgentMutationOdds dd 10 ; RFF in percents
+  AgentMutationOdds dd 0 ; RFF in percents
     
   ; food info
-  FoodMaxValue dd 200 ; RFF
+  FoodMaxValue dd 250 ; RFF
   TimeForFoodToGrow dd 2 ; RFF; N: food grow by specified in vector value each N tacts 
   FoodGrowMaxValue dd 50 ; RFF
   FoodRecSize dd 10
@@ -57,6 +57,11 @@ section '.data' data readable writeable
   FoodCapacity dd ?
   FoodSize dd 0
   FoodAddr dd ?
+  NextFoodSpawnN dd ?
+  NextFoodSpawnT dd ?
+  NextFoodSpawnTMax dd 40
+  NextFoodSpawnNMax dd 8 * 4
+  SpawnedFoodMaxAmount dd 20
 
   ; GUI stuff
   EMPTY_COLOR = 0x00000000
@@ -105,6 +110,15 @@ section '.text' code readable executable
 proc EntryPoint
   stdcall Initialisation
   stdcall fillField
+
+  stdcall RandInt, [NextFoodSpawnTMax]
+  inc eax
+  mov [NextFoodSpawnT], eax
+
+  stdcall RandInt, [NextFoodSpawnNMax]
+  inc eax
+  mov [NextFoodSpawnN], eax
+
   stdcall start
   ret 
 endp
@@ -219,6 +233,19 @@ proc startGame
 
     continueGameLoop:
     invoke GetTickCount
+
+    cmp [NextFoodSpawnT], ebp
+    jne @F
+    stdcall GenFood
+      stdcall RandInt, [NextFoodSpawnTMax]
+      inc eax
+      add [NextFoodSpawnT], eax
+      
+      stdcall RandInt, [NextFoodSpawnNMax]
+      inc eax
+      mov [NextFoodSpawnN], eax
+    @@:
+
     mov [StartTimeMs], eax
     mov ecx, [AgentsSize]
     cmp ecx, 0
@@ -349,30 +376,6 @@ proc startGame
   ret
 endp
 
-proc GrowFood uses ecx edi
-  mov ecx, [FoodSize]
-  cmp ecx, 0
-  jbe .stop
-  mov edi, [FoodAddr]
-  .loopStart:
-
-    ; to optimize mb
-    movzx eax, word[edi + FOOD_GROW_VALUE_OFFSET]
-    add word[edi + FOOD_AMOUNT_OFFSET], ax
-    movzx eax, word[edi + FOOD_MAX_AMOUNT_OFFSET]
-    cmp word[edi + FOOD_AMOUNT_OFFSET], ax
-    jb @F
-      mov word[edi + FOOD_AMOUNT_OFFSET], ax
-    @@:
-    movzx eax, word[edi + FOOD_AMOUNT_OFFSET]
-    stdcall CalcFoodColor, eax
-    stdcall bufUpdateCellColor, [edi + FOOD_COORDS_OFFSET], eax
-    add edi, [FoodRecSize]
-  loop .loopStart
-  .stop:
-  ret 
-endp
-
 section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL',\
           gdi32, 'GDI32.DLL', \
@@ -419,4 +422,5 @@ section '.idata' import data readable writeable
   include 'assistive.asm'
   include 'gui.asm'
   include 'agents.asm'
+  include 'food.asm'
   include 'files.asm'
