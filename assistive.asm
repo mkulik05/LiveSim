@@ -1,17 +1,10 @@
 
 ; eax - return new rand value up to maxVal
 proc RandInt uses ecx ebx edx, maxVal 
-    xor eax, eax
-    rdrand ax
-    mul word[maxVal]
-    mov ebx, eax
-    movzx eax, dx
-    shl eax, 16
-    add eax, ebx
-    ; in eax - value * NewMax
-
+    rdrand eax
     xor edx, edx
-    mov ecx, 0x00_00_FF_FF 
+    mul [maxVal]
+    mov ecx, 0xFF_FF_FF_FF 
     div ecx
     ret 
 endp
@@ -53,7 +46,7 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
     mov ebx, [FieldAddr]
     shl eax, 2
     add ebx, eax 
-    and dword[ebx], 1100_0000_0000_0000_0000_0000_0000_0000b
+    ; and dword[ebx], 1100_0000_0000_0000_0000_0000_0000_0000b
 
     mov eax, [PSize]
     mov eax, [eax]

@@ -101,55 +101,10 @@ proc PrintStats
 endp
 
 proc BufMoveAgent uses ecx edi edx ebx, src, dest, energy
-  local X dd ?
-  local Y dd ?
-
-  mov eax, [src]
-  xor edx, edx
-  div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
-
-  ; getting cell Y coord in pxs
-  mov eax, [Y]
-  mul [CellSizePX]
-  add eax, [YFieldOffset]
-  mov [Y], eax
-  mul [ScreenWidth]
-  mov ebx, eax
-
-  mov eax, [X]
-  mul [CellSizePX]
-  add eax, [XFieldOffset]
-  mov [X], eax
-
-
-  add ebx, eax
-
-  mul [ScreenWidth]
-  mov edi, [ScreenBufAddr]
   stdcall CalcAgentColor, [energy]
-  mov ecx, eax ; saving old cell color
-
-  stdcall DrawRect, [ScreenBufAddr], [X], [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
-  
-  mov eax, [dest]
-  xor edx, edx
-  div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
-
-  ; getting cell Y coord in pxs
-  mov eax, [Y]
-  mul [CellSizePX]
-  add eax, [YFieldOffset]
-  mov [Y], eax
-
-  mov eax, [X]
-  mul [CellSizePX]
-  add eax, [XFieldOffset]
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ecx
-
+  mov ecx, eax
+  stdcall bufUpdateCellColor, [src], EMPTY_COLOR
+  stdcall bufUpdateCellColor, [dest], ecx
   ret
 endp
 
@@ -266,8 +221,8 @@ proc CalcAgentColor uses edx ebx ecx, energy
     xor edx, edx
     mov ecx, [AgentMinEnergyToClone]
     div ecx
-    shl eax, 16
     .stop:
+    shl eax, 16
   ret
 endp
 

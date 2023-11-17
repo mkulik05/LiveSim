@@ -20,9 +20,7 @@ proc AgentMoveTop uses esi edi ebx edx, ind
   test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
   
-  mov eax, 0xFFFFFFFF
-  xor eax, FIELD_AGENT_STATE
-  and dword[ebx], eax
+  mov dword[ebx], 0
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   ; edi is already negative
@@ -67,9 +65,7 @@ proc AgentMoveDown uses esi edi ebx edx, ind
   test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov eax, 0xFFFFFFFF
-  xor eax, FIELD_AGENT_STATE
-  and dword[ebx], eax
+  mov dword[ebx], 0
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
@@ -115,9 +111,7 @@ proc AgentMoveRight uses esi edi ebx edx, ind
   test dword[ebx + FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov eax, 0xFFFFFFFF
-  xor eax, FIELD_AGENT_STATE
-  and dword[ebx], eax
+  mov dword[ebx], 0
 
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
@@ -161,9 +155,7 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   test dword[ebx - FieldCellSize], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
-  mov eax, 0xFFFFFFFF
-  xor eax, FIELD_AGENT_STATE
-  and dword[ebx], eax
+  mov dword[ebx], 0
     
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
 
@@ -180,8 +172,10 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   test dword[ebx - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .finish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
-
+ 
+  
   .finish:
+
   
   ret
 endp
@@ -209,7 +203,7 @@ proc FeedAgent uses ecx esi edi ebx, AgentI, coords
   
   FoundEl:
     ; getting food amount
-    mov ebx, [edi + FOOD_AMOUNT_OFFSET] ; in edi already have addr of curr food       
+    movzx ebx, word[edi + FOOD_AMOUNT_OFFSET] ; in edi already have addr of curr food       
     
     ; getting agents addr
     mov edi, [AgentsAddr]

@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 8
+  FieldSize dd 512
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -60,8 +60,8 @@ section '.data' data readable writeable
   NextFoodSpawnN dd ?
   NextFoodSpawnT dd ?
   NextFoodSpawnTMax dd 40
-  NextFoodSpawnNMax dd 8 * 4
-  SpawnedFoodMaxAmount dd 20
+  NextFoodSpawnNMax dd 512 * 10
+  SpawnedFoodMaxAmount dd 50
 
   ; GUI stuff
   EMPTY_COLOR = 0x00000000
@@ -127,7 +127,6 @@ proc start
 
   push [FoodSize]
   push [AgentsSize]
-
 
   stdcall drawBkg
   stdcall calcCellSize ; will put result into CellSizePX constant
