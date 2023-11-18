@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 50
+  FrameDelayMs dd 500
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 512
+  FieldSize dd 4
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -60,7 +60,7 @@ section '.data' data readable writeable
   NextFoodSpawnN dd ?
   NextFoodSpawnT dd ?
   NextFoodSpawnTMax dd 40
-  NextFoodSpawnNMax dd 512 * 10
+  NextFoodSpawnNMax dd 4 * 1
   SpawnedFoodMaxAmount dd 50
 
   ; GUI stuff
@@ -232,6 +232,7 @@ proc startGame
 
     continueGameLoop:
     invoke GetTickCount
+    mov [StartTimeMs], eax
 
     cmp [NextFoodSpawnT], ebp
     jne @F
@@ -244,8 +245,7 @@ proc startGame
       inc eax
       mov [NextFoodSpawnN], eax
     @@:
-
-    mov [StartTimeMs], eax
+  
     mov ecx, [AgentsSize]
     cmp ecx, 0
     jle GameOver ; all agents died

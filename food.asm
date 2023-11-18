@@ -6,6 +6,7 @@ proc GenFood uses ecx ebx esi edi
     mov eax, [FieldSize]
     mul eax 
     dec eax
+
     stdcall RandInt, eax
     mov ebx, eax
 

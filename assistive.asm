@@ -1,6 +1,5 @@
-
 ; eax - return new rand value up to maxVal
-proc RandInt uses ecx ebx edx, maxVal 
+proc RandInt uses ecx edx, maxVal 
     rdrand eax
     xor edx, edx
     mul [maxVal]
