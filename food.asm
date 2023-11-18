@@ -7,6 +7,8 @@ proc GenFood uses ecx ebx esi edi
     mul eax 
     dec eax
 
+    ; mov eax, ecx
+
     stdcall RandInt, eax
     mov ebx, eax
 
@@ -93,6 +95,8 @@ proc GenFood uses ecx ebx esi edi
       mov eax, [FieldSize]
       mov [esi], eax
       or dword[esi], FIELD_FOOD_STATE
+      mov eax, [FoodSize]
+      or dword[esi], eax
 
       movzx eax, word[edi + FOOD_AMOUNT_OFFSET]
       stdcall CalcFoodColor, eax

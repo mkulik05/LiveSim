@@ -117,26 +117,27 @@ proc BufCloneCell uses ecx, src, dest, energy
 endp
 
 proc bufClearCell uses ecx edi edx ebx, src
-  local X dd ?
-  local Y dd ?
+  stdcall bufUpdateCellColor, [src], EMPTY_COLOR
+  ; local X dd ?
+  ; local Y dd ?
 
-  mov eax, [src]
-  xor edx, edx
-  div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
+  ; mov eax, [src]
+  ; xor edx, edx
+  ; div [FieldSize]
+  ; mov [X], edx 
+  ; mov [Y], eax
 
-  ; getting cell Y coord in pxs
-  mov eax, [Y]
-  mul [CellSizePX]
-  add eax, [YFieldOffset]
-  mov [Y], eax
+  ; ; getting cell Y coord in pxs
+  ; mov eax, [Y]
+  ; mul [CellSizePX]
+  ; add eax, [YFieldOffset]
+  ; mov [Y], eax
 
-  mov eax, [X]
-  mul [CellSizePX]
-  add eax, [XFieldOffset]
+  ; mov eax, [X]
+  ; mul [CellSizePX]
+  ; add eax, [XFieldOffset]
 
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
+  ; stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
   ret
 endp
 

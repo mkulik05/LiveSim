@@ -36,9 +36,15 @@ proc AgentMoveTop uses esi edi ebx edx, ind
   sub dword[esi + AGENT_ENERGY_OFFSET], eax
 
   test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
-  jz .finish
+  jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
-
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
+    stdcall CalcAgentColor, eax
+    stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
+  .almostfinish:
+    and dword[ebx + edi * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+    mov eax, [ind]
+    or  dword[ebx + edi * FieldCellSize], eax
   .finish:
   
   ret
@@ -81,9 +87,16 @@ proc AgentMoveDown uses esi edi ebx edx, ind
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
-  jz .finish
+  jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
+    stdcall CalcAgentColor, eax
+    stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
 
+  .almostfinish: 
+  and dword[ebx + edi * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  mov eax, [ind]
+  or  dword[ebx + edi * FieldCellSize], eax
   .finish:
   
   ret
@@ -126,9 +139,16 @@ proc AgentMoveRight uses esi edi ebx edx, ind
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
-  jz .finish
+  jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
-
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
+    stdcall CalcAgentColor, eax
+    stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
+  
+  .almostfinish:
+  and dword[ebx + FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  mov eax, [ind]
+  or  dword[ebx + FieldCellSize], eax
   .finish:
 
   ret
@@ -170,10 +190,16 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
-  jz .finish
+  jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
+    movzx eax, word[esi + AGENT_ENERGY_OFFSET]
+    stdcall CalcAgentColor, eax
+    stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
  
-  
+  .almostfinish:
+  and dword[ebx - FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  mov eax, [ind]
+  or  dword[ebx - FieldCellSize], eax
   .finish:
 
   

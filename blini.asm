@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 500
+  FrameDelayMs dd 50
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 4
+  FieldSize dd 512
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -60,7 +60,7 @@ section '.data' data readable writeable
   NextFoodSpawnN dd ?
   NextFoodSpawnT dd ?
   NextFoodSpawnTMax dd 40
-  NextFoodSpawnNMax dd 4 * 1
+  NextFoodSpawnNMax dd 512 * 50
   SpawnedFoodMaxAmount dd 50
 
   ; GUI stuff
@@ -118,6 +118,9 @@ proc EntryPoint
   stdcall RandInt, [NextFoodSpawnNMax]
   inc eax
   mov [NextFoodSpawnN], eax
+
+  ; mov dword[NextFoodSpawnT], 1
+  ; mov dword[NextFoodSpawnN], 5
 
   stdcall start
   ret 
@@ -233,19 +236,7 @@ proc startGame
     continueGameLoop:
     invoke GetTickCount
     mov [StartTimeMs], eax
-
-    cmp [NextFoodSpawnT], ebp
-    jne @F
-    stdcall GenFood
-      stdcall RandInt, [NextFoodSpawnTMax]
-      inc eax
-      add [NextFoodSpawnT], eax
-      
-      stdcall RandInt, [NextFoodSpawnNMax]
-      inc eax
-      mov [NextFoodSpawnN], eax
-    @@:
-  
+ 
     mov ecx, [AgentsSize]
     cmp ecx, 0
     jle GameOver ; all agents died
@@ -355,6 +346,20 @@ proc startGame
       cmp [StopGame], 1
       je GameOver
       
+      cmp [NextFoodSpawnT], ebp
+      jne @F
+      stdcall GenFood
+        stdcall RandInt, [NextFoodSpawnTMax]
+        inc eax
+        add [NextFoodSpawnT], eax
+        
+        stdcall RandInt, [NextFoodSpawnNMax]
+        inc eax
+        mov [NextFoodSpawnN], eax
+        ; add dword[NextFoodSpawnT], 1
+        ; mov [NextFoodSpawnN], 4
+      @@:
+
       invoke GetTickCount
 
       ; getting time passed
