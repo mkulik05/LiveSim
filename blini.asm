@@ -344,7 +344,7 @@ proc startGame
         stdcall RandInt, [NextFoodSpawnNMax]
         inc eax
         mov [NextFoodSpawnN], eax
-        ; add dword[NextFoodSpawnT], 1
+        ; add dword[NextFoodSpawnT], 3
         ; mov [NextFoodSpawnN], 4
       @@:
 

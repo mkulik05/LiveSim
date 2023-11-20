@@ -1,5 +1,4 @@
 
-; BP registor is used inside!!!
 proc AgentMoveTop uses esi edi ebx edx, ind
   mov esi, [AgentsAddr]
   mov eax, [ind]
@@ -22,6 +21,9 @@ proc AgentMoveTop uses esi edi ebx edx, ind
   
   mov dword[ebx], 0
 
+
+  mov eax, [AgentEnergyToMove]
+  sub dword[esi + AGENT_ENERGY_OFFSET], eax
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   ; edi is already negative
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent up
@@ -31,9 +33,6 @@ proc AgentMoveTop uses esi edi ebx edx, ind
 
   ; edi is already negative
   or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
-
-  mov eax, [AgentEnergyToMove]
-  sub dword[esi + AGENT_ENERGY_OFFSET], eax
 
   test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
@@ -73,6 +72,8 @@ proc AgentMoveDown uses esi edi ebx edx, ind
 
   mov dword[ebx], 0
 
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
   add [esi + AGENT_COORDS_OFFSET], edi ; moving agent down
@@ -82,9 +83,6 @@ proc AgentMoveDown uses esi edi ebx edx, ind
   
 
   or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
-
-  mov eax, [AgentEnergyToMove]
-  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
@@ -126,6 +124,8 @@ proc AgentMoveRight uses esi edi ebx edx, ind
 
   mov dword[ebx], 0
 
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
   
   inc dword[esi + AGENT_COORDS_OFFSET] ; moving agent to right
@@ -134,9 +134,6 @@ proc AgentMoveRight uses esi edi ebx edx, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   or dword[ebx + FieldCellSize], FIELD_AGENT_STATE
-
-  mov eax, [AgentEnergyToMove]
-  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
@@ -177,6 +174,8 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
 
   mov dword[ebx], 0
     
+  mov eax, [AgentEnergyToMove]
+  sub word[esi + AGENT_ENERGY_OFFSET], ax
   mov eax, [esi + AGENT_COORDS_OFFSET] ; saving old coords for buf move
 
   dec dword[esi + AGENT_COORDS_OFFSET] ; moving agent to left
@@ -185,9 +184,6 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
   or dword[ebx - FieldCellSize], FIELD_AGENT_STATE
-
-  mov eax, [AgentEnergyToMove]
-  sub word[esi + AGENT_ENERGY_OFFSET], ax
 
   test dword[ebx - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
