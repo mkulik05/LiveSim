@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 50
+  FrameDelayMs dd 0
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
   TotalTacts dd 0
   HeapHandle dd ?
@@ -266,11 +266,6 @@ proc startGame
       ; cloning agent
       stdcall AgentClone, esi
       dec word[edi + AGENT_ENERGY_OFFSET]
-      ; in case of successful cloning, doing loop one more time (to process new agent too)
-      ; cmp [AgentClonedSuccessfully], 1
-      ; jne @F
-      ;   inc ecx 
-      ; @@:
       jmp NextAgent
 
       ContinueExecution: 
@@ -299,13 +294,6 @@ proc startGame
         jmp skipMove
         @@:
         stdcall dword[AgentTasks + ebx * 4], esi ; calling instruction
-
-        ; cmp ebx, 5
-        ; jne @F
-        ; cmp [AgentClonedSuccessfully], 0
-        ; je @F
-        ;   inc ecx 
-        ; @@:
 
         skipMove:
 
