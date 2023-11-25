@@ -42,7 +42,7 @@ section '.data' data readable writeable
   AgentEnergyToClone dd 50 ; RFF   ; should be less then AgentMinEnergyToClone
   AgentMinEnergyToClone dd 350 ; RFF
   AgentClonedSuccessfully dd 0
-  AgentMutationOdds dd 0 ; RFF in percents
+  AgentMutationOdds dd 20 ; RFF in percents
     
   ; food info
   FoodMaxValue dd 250 ; RFF
@@ -76,6 +76,14 @@ section '.data' data readable writeable
   FieldWidth dd 0
   FieldXOffset dd 0
   FieldYOffset dd 0
+
+  ; if 1 - input is captured by console, otherwise - by main window
+  ; toggled by slash '/'
+  ConsoleInputMode dd 0
+  ConsoleBufSize = 15
+  ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
+  ConsoleCharsN dd 0
+  ConsoleError db 'Invalid instruction', 0
 
   isGUIInited dd 0
   tactNStr TCHAR 'Tact N: ', 0, 0, 0, 0, 0, 0, 0, 0
@@ -362,6 +370,13 @@ proc startGame
       invoke Sleep, ecx
       @@:
 
+    ; mov eax, 50
+    ; mul eax
+    ; stdcall RandInt, eax
+    ; xor edx, edx 
+    ; mov ebx, 100
+    ; div ebx
+    ; mov [AgentMutationOdds], eax 
     jmp gameLoop
 
   GameOver:
@@ -372,7 +387,6 @@ section '.idata' import data readable writeable
   library kernel32, 'KERNEL32.DLL',\
           gdi32, 'GDI32.DLL', \
           user32, 'USER32.DLL'
-          
 
   import kernel32,\
          Sleep, 'Sleep', \

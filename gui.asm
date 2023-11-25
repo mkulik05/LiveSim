@@ -118,26 +118,6 @@ endp
 
 proc bufClearCell uses ecx edi edx ebx, src
   stdcall bufUpdateCellColor, [src], EMPTY_COLOR
-  ; local X dd ?
-  ; local Y dd ?
-
-  ; mov eax, [src]
-  ; xor edx, edx
-  ; div [FieldSize]
-  ; mov [X], edx 
-  ; mov [Y], eax
-
-  ; ; getting cell Y coord in pxs
-  ; mov eax, [Y]
-  ; mul [CellSizePX]
-  ; add eax, [YFieldOffset]
-  ; mov [Y], eax
-
-  ; mov eax, [X]
-  ; mul [CellSizePX]
-  ; add eax, [XFieldOffset]
-
-  ; stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], EMPTY_COLOR
   ret
 endp
 
@@ -377,17 +357,76 @@ proc ProcessWindowMsgs
   ret 
 endp
 
+proc RedrawCommand uses edi eax
+  local rect RECT
+  mov edi, ConsoleInpBuf 
+  add edi, [ConsoleCharsN]
+  mov byte[edi], 0
+
+ 
+  mov eax, [FieldXOffset]
+  mov [rect.left], eax
+  mov eax, [FieldWidth] 
+  add [rect.left], eax
+  add [rect.left], TEXT_MARGIN_LEFT / 2
+  mov eax, [ScreenWidth]
+  mov [rect.right], eax
+  mov [rect.top], TEXT_MARGIN_TOP
+  mov [rect.bottom], TEXT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect] 
+  invoke DrawText, [hDC], ConsoleInpBuf, -1, eax, DT_LEFT
+  ret 
+endp
+
+proc ProcessCommand 
+  cmp [ConsoleCharsN], 2
+  jb .stopProcessing
+  
+
+  .stopProcessing:
+  ret 
+endp
+
 proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   cmp [wmsg], WM_DESTROY
   je .wmdestroy
   cmp [wmsg], WM_KEYDOWN
-  je .keyDown
+  jne @F 
+
+  cmp [ConsoleInputMode], 1
+  jne .keyDown
+  mov eax, [lparam]
+  shr eax, 31 
+  jc .full_skip
+  
+  jmp .keyDown
+
+  @@:
   invoke DefWindowProc, [hwnd], [wmsg], [wparam], [lparam]
-  jmp .finish
+  jmp .full_skip
 
   .keyDown:
+    cmp [wparam], VK_TAB
+    jne @F
+
+    cmp [ConsoleInputMode], 1
+    jne .switchTO1
+    mov [ConsoleInputMode], 0
+    jmp .finish
+    .switchTO1:
+    mov [ConsoleInputMode], 1
+    jmp .finish
+
+    @@:
     cmp [wparam], VK_ESCAPE
     je .wmdestroy
+
+    cmp [ConsoleInputMode], 1
+    je .handleConsoleInp
+
+    .handleWindowInp:
     cmp [wparam], VK_SPACE
     jne .coninueAnalisis
     cmp [PauseGame], 0
@@ -426,6 +465,76 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     cmp [wparam], 0x4B
     jne .finish 
     stdcall loadField, fname1
+    
+    jmp .finish
+
+    .handleConsoleInp:
+
+    ; enter
+    cmp [wparam], VK_RETURN
+    jne @F
+    stdcall ProcessCommand
+    mov [ConsoleCharsN], 0
+    jmp .finish
+
+    @@:
+    cmp [wparam], VK_BACK
+    jne @F
+    cmp [ConsoleCharsN], 0
+    jg .GreaterThenZero
+    inc [ConsoleCharsN] 
+    .GreaterThenZero:
+      dec [ConsoleCharsN]
+    
+    jmp .finish
+
+    @@:
+    cmp [ConsoleCharsN], ConsoleBufSize
+    jae .finish ; buffer is full, not procesing new char
+    mov edi, ConsoleInpBuf
+    add edi, [ConsoleCharsN]
+    ; space
+
+    cmp [wparam], VK_SPACE
+    jne @F 
+    mov byte[edi], ' '
+    inc [ConsoleCharsN]
+    jmp .finish
+    
+    @@:
+    ; A
+    cmp [wparam], 0x41
+    jb .notALetter
+    ; Z
+    cmp [wparam], 0x5A
+    ja .notALetter 
+
+    mov eax, [wparam]
+    sub eax, 0x41
+    add eax, 'a'
+    mov byte[edi], al
+    inc [ConsoleCharsN]
+    
+    jmp .finish
+     
+    .notALetter:
+    ; 0
+    cmp [wparam], 0x30
+    jb .notADigit
+
+    ; 9
+    cmp [wparam], 0x39
+    ja .notADigit
+
+    mov eax, [wparam]
+    sub eax, 0x30
+    add eax, '0'
+    mov byte[edi], al
+    inc [ConsoleCharsN]
+    
+    jmp .finish
+    .notADigit: 
+
   jmp .finish
 
   .wmdestroy:
@@ -433,5 +542,13 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   xor eax, eax
   invoke  ExitProcess, 0
   .finish:
+  
+    cmp [ConsoleInputMode], 1
+    jne @F
+      xor eax, eax
+      stdcall RedrawCommand
+    @@:
+
+  .full_skip:
   ret
 endp
