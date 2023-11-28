@@ -39,8 +39,8 @@ section '.data' data readable writeable
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 50 ; RFF   ; should be less then AgentMinEnergyToClone
-  AgentMinEnergyToClone dd 350 ; RFF
+  AgentEnergyToClone dd 250 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentMinEnergyToClone dd 252 ; RFF
   AgentClonedSuccessfully dd 0
   AgentMutationOdds dd 0 ; RFF in percents
     

@@ -453,6 +453,18 @@ proc ProcessCommand uses edi esi ecx edx
   mov esi, [esi]
   mov [esi], eax
 
+  ; checking there to not slow dowd game loop
+  ; AgentEnergyToMove + 2 <= AgentMinEnergyToClone
+  ; cause energy is splitted, then decresed, so it should be hndled correctly
+  mov ebx, [AgentEnergyToClone]
+  add ebx, 2
+
+  cmp ebx, [AgentMinEnergyToClone]
+  jbe @F 
+    mov [AgentMinEnergyToClone], ebx
+    sub [AgentMinEnergyToClone], 2 
+  @@: 
+
   .stopProcessing:
 
   ret 
