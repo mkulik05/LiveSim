@@ -544,6 +544,8 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     jne @F
     stdcall ProcessCommand
     mov [ConsoleCharsN], 0
+    mov [ConsoleInputMode], 0
+    stdcall RedrawCommand
     jmp .finish
 
     @@:
