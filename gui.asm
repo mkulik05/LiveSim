@@ -380,12 +380,81 @@ proc RedrawCommand uses edi eax
   ret 
 endp
 
-proc ProcessCommand 
-  cmp [ConsoleCharsN], 2
+proc ProcessCommand uses edi esi ecx edx
+  cmp dword[ConsoleCharsN], COMMAND_LEN + 2 ; command, space, number
   jb .stopProcessing
-  
+
+  mov ecx, COMMANDS_N
+  xor ebx, ebx ; index of selected command
+  .checkCommand:  
+
+    ; calculating index of current checked command in array
+    mov edi, ConsoleCommands
+    mov eax, COMMAND_LEN 
+    mul ebx
+    add edi, eax
+
+    mov esi, ConsoleInpBuf
+    push ecx
+    mov ecx, COMMAND_LEN
+    repe cmpsb 
+    pop ecx
+    jne .nextCommand ; command did not match
+    jmp .foundCommand
+
+    .nextCommand:
+      inc ebx
+  loop .checkCommand
+
+  jmp .stopProcessing
+
+  .foundCommand:
+
+  ; so StrToIntW function will stop after meeting zero
+  mov edi, ConsoleInpBuf
+  add edi, COMMAND_LEN
+  mov ecx, [ConsoleCharsN]
+  sub ecx, COMMAND_LEN
+
+  .getToFirstNum:
+    cmp byte[edi], '0'
+    jb @F 
+    cmp byte[edi], '9'
+    ja @F
+
+    jmp .foundNum
+    @@:
+    inc edi
+  loop .getToFirstNum
+
+  jmp .stopProcessing
+
+  .foundNum:
+  xor eax, eax ; store result number
+  .numberLoop:
+    mov edx, 10
+    mul edx
+    cmp byte[edi], '0'
+    jb .stopProcessing
+    cmp byte[edi], '9'
+    ja .stopProcessing
+
+    add al, byte[edi]
+    sub eax, '0'
+
+    inc edi
+  loop .numberLoop
+
+  ; parsed number
+  mov esi, CommandsEditLabel
+  shl ebx, 2
+  add esi, ebx
+
+  mov esi, [esi]
+  mov [esi], eax
 
   .stopProcessing:
+
   ret 
 endp
 

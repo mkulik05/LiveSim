@@ -17,7 +17,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 512
+  FieldSize dd 256
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -42,7 +42,7 @@ section '.data' data readable writeable
   AgentEnergyToClone dd 50 ; RFF   ; should be less then AgentMinEnergyToClone
   AgentMinEnergyToClone dd 350 ; RFF
   AgentClonedSuccessfully dd 0
-  AgentMutationOdds dd 20 ; RFF in percents
+  AgentMutationOdds dd 0 ; RFF in percents
     
   ; food info
   FoodMaxValue dd 250 ; RFF
@@ -76,6 +76,23 @@ section '.data' data readable writeable
   FieldWidth dd 0
   FieldXOffset dd 0
   FieldYOffset dd 0
+
+  ; Process commands
+  ; ame - agent move energy
+  ; ace - agent clone energy
+  ; amo - agent mutation odds
+  ; fgl - food grow limit
+  ; fgt - food grow time
+  ; tft - time for tact (in ms)
+  ; mce - min clone energy
+  ; fma - food max amount
+  ; fia - food max init amount
+  ; fms - food max spawn amount
+  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'amc', 'mce', 'fma', 'fia', 'fms'
+  COMMAND_LEN = 3
+  CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount
+  COMMANDS_N = 11
+  
 
   ; if 1 - input is captured by console, otherwise - by main window
   ; toggled by slash '/'
