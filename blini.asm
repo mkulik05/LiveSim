@@ -5,7 +5,9 @@ include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
   FrameDelayMs dd 0
+  MaxWaitTime = 32 ; in ms max time per one sleep, if need more time - splitted into sev sleep (to make app responsible)
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
+
   TotalTacts dd 0
   HeapHandle dd ?
   TotalAllocSize dd ?
@@ -144,9 +146,6 @@ proc EntryPoint
   inc eax
   mov [NextFoodSpawnN], eax
 
-  ; mov dword[NextFoodSpawnT], 1
-  ; mov dword[NextFoodSpawnN], 5
-
   stdcall start
   ret 
 endp
@@ -238,7 +237,7 @@ proc startGame
     stdcall PrintStats  
     invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
     stdcall ProcessWindowMsgs
-    
+
     cmp [PutOnPauseNextTact], 1
     jne .IsPausedCheck
     mov [PauseGame], 1
@@ -369,8 +368,6 @@ proc startGame
         stdcall RandInt, [NextFoodSpawnNMax]
         inc eax
         mov [NextFoodSpawnN], eax
-        ; add dword[NextFoodSpawnT], 3
-        ; mov [NextFoodSpawnN], 4
       @@:
 
       invoke GetTickCount
@@ -383,17 +380,23 @@ proc startGame
       jge @F
       mov ecx, [FrameDelayMs]
       sub ecx, eax
-      
+      cmp ecx, MaxWaitTime
+      jge .splitWait
       invoke Sleep, ecx
-      @@:
+      jmp @F
+      .splitWait:
+      shr ecx, 5
+      cmp ecx, 0
+      jbe @F
+      mov ebx, MaxWaitTime
+      .waiter:
+        push ecx 
+        stdcall ProcessWindowMsgs
+        invoke Sleep, ebx
+        pop ecx
+      loop .waiter
 
-    ; mov eax, 50
-    ; mul eax
-    ; stdcall RandInt, eax
-    ; xor edx, edx 
-    ; mov ebx, 100
-    ; div ebx
-    ; mov [AgentMutationOdds], eax 
+      @@:
     jmp gameLoop
 
   GameOver:
