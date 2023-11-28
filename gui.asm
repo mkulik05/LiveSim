@@ -41,7 +41,6 @@ proc drawField uses ecx edi ebx edx ebp esi
     add ebx, [CellSizePX]
     mov eax, [FieldWidth]
     sub eax, [XFieldOffset]
-    dec eax
     cmp ebx, eax
     jb @F
 
