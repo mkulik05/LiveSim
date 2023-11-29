@@ -19,7 +19,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 1024
+  FieldSize dd 256
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -41,7 +41,7 @@ section '.data' data readable writeable
   AgentsSize dd 0
   AgentsAddr dd ?
   AgentEnergyToMove dd 20 ; RFF
-  AgentEnergyToClone dd 250 ; RFF   ; should be less then AgentMinEnergyToClone
+  AgentEnergyToClone dd 150 ; RFF   ; should be less then AgentMinEnergyToClone
   AgentMinEnergyToClone dd 252 ; RFF
   AgentClonedSuccessfully dd 0
   AgentMutationOdds dd 0 ; RFF in percents
@@ -94,10 +94,24 @@ section '.data' data readable writeable
   COMMAND_LEN = 3
   CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount
   COMMANDS_N = 11
+  ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
+  ConsoleBufSavesN dd 10
+  ConsoleBufCurrSave dd -1
+  ConsoleBufSave1 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave2 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave3 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave4 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave5 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave6 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave7 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave8 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave9 db (ConsoleBufSize + 1) dup ?
+  ConsoleBufSave10 db (ConsoleBufSize + 1) dup ?
+
   
 
   ; if 1 - input is captured by console, otherwise - by main window
-  ; toggled by slash '/'
+  ; toggled by slash 'tab'
   ConsoleInputMode dd 0
   ConsoleBufSize = 15
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
@@ -136,6 +150,7 @@ section '.text' code readable executable
 
 proc EntryPoint
   stdcall Initialisation
+  stdcall calcMaxConsoleLines
   stdcall fillField
 
   stdcall RandInt, [NextFoodSpawnTMax]

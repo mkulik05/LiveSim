@@ -1,3 +1,17 @@
+proc calcMaxConsoleLines uses ebx edx
+  ; not counting console input part
+  mov eax, [ScreenHeight]
+  sub eax, TEXT_FONT_SIZE * 2
+
+  mov ebx, TEXT_FONT_SIZE * 2
+
+  div ebx
+
+  mov [ConsoleBufSavesN], eax
+
+  ret
+endp
+
 ; eax - return new rand value up to maxVal
 proc RandInt uses ecx edx, maxVal 
     rdrand eax

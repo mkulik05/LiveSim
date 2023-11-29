@@ -356,6 +356,93 @@ proc ProcessWindowMsgs
   ret 
 endp
 
+
+proc WriteMsg uses edi esi ebx, Msg
+  local rect RECT
+
+  ; initing them in the start, cause they are constant
+  mov eax, [FieldXOffset]
+  add eax, [FieldWidth] 
+  add [rect.left], eax
+  add [rect.left], TEXT_MARGIN_LEFT / 2
+  mov eax, [ScreenWidth]
+  mov [rect.right], eax
+
+  inc [ConsoleBufCurrSave]
+  mov eax, [ConsoleBufSavesN]
+  cmp dword[ConsoleBufCurrSave], eax
+  jae .needRewrite
+
+    ; saving text to corresponding slot (so history will work (in future:)))
+    mov ecx, ConsoleBufSize + 1
+    mov ebx, [ConsoleBufCurrSave]
+    mov edi, [ConsoleBufSaves + ebx * 4]
+    mov esi, [Msg]
+    rep movsb
+
+    mov eax, TEXT_FONT_SIZE * 2
+    mul [ConsoleBufCurrSave]
+    cmp [ConsoleBufCurrSave], 0
+    jne @F 
+      mov eax, TEXT_MARGIN_TOP
+    @@:
+    mov [rect.top], eax
+    mov [rect.bottom], eax
+    add [rect.bottom], TEXT_FONT_SIZE * 2
+
+    lea eax, [rect] 
+    invoke FillRect, [hDC], eax, [bkgBrush]
+    lea eax, [rect] 
+    invoke DrawText, [hDC], [Msg], -1, eax, DT_LEFT
+
+    jmp .stop
+
+  .needRewrite:    
+    ; backing up first cell (moving it into last one)
+    mov edx, [ConsoleBufSaves]
+    push edx
+
+    ; starting shifting text in ConsoleBufSaves array
+    mov ecx, [ConsoleBufSavesN]
+    dec ecx
+    mov ebx, 1
+    mov [rect.top], TEXT_MARGIN_TOP
+    mov [rect.bottom], TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
+
+    .shiftText:
+      push ecx
+      mov edx, [ConsoleBufSaves + ebx * 4]
+      mov [ConsoleBufSaves + (ebx - 1) * 4], edx
+      lea eax, [rect] 
+      invoke FillRect, [hDC], eax, [bkgBrush]
+      lea eax, [rect] 
+      invoke DrawText, [hDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+      add [rect.top], TEXT_FONT_SIZE * 2
+      add [rect.bottom], TEXT_FONT_SIZE * 2
+      pop ecx
+      inc ebx
+    loop .shiftText
+
+    mov ebx, [ConsoleBufSavesN]
+    pop edx 
+    mov [ConsoleBufSaves + (ebx - 1) * 4], edx
+
+    ; saving text to corresponding slot (so history will work (in future:)))
+    mov ecx, ConsoleBufSize + 1
+    mov edi, [ConsoleBufSaves + (ebx - 1) * 4]
+    mov esi, [Msg]
+    rep movsb
+
+    lea eax, [rect] 
+    invoke FillRect, [hDC], eax, [bkgBrush]
+    lea eax, [rect] 
+    invoke DrawText, [hDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+
+    .stop:
+
+  ret 
+endp
+
 proc RedrawCommand uses edi eax
   local rect RECT
   mov edi, ConsoleInpBuf 
@@ -370,8 +457,11 @@ proc RedrawCommand uses edi eax
   add [rect.left], TEXT_MARGIN_LEFT / 2
   mov eax, [ScreenWidth]
   mov [rect.right], eax
-  mov [rect.top], TEXT_MARGIN_TOP
-  mov [rect.bottom], TEXT_FONT_SIZE * 2
+
+  mov eax, [ScreenHeight]
+  mov [rect.bottom], eax
+  sub eax, TEXT_FONT_SIZE * 2
+  mov [rect.top], eax
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect] 
@@ -553,10 +643,19 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     ; enter
     cmp [wparam], VK_RETURN
     jne @F
+    cmp [ConsoleCharsN], 0
+    mov [ConsoleInputMode], 0
+    je  .finish
+    
+    mov edi, ConsoleInpBuf 
+    add edi, [ConsoleCharsN] 
+    mov byte[edi], 0
+    stdcall WriteMsg, ConsoleInpBuf
     stdcall ProcessCommand
     mov [ConsoleCharsN], 0
-    mov [ConsoleInputMode], 0
+
     stdcall RedrawCommand
+    
     jmp .finish
 
     @@:
