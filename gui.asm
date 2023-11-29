@@ -443,6 +443,27 @@ proc WriteMsg uses edi esi ebx, Msg
   ret 
 endp
 
+proc DrawCursor uses edi eax
+  local rect RECT
+
+  mov eax, [FieldXOffset]
+  add eax, [FieldWidth] 
+  mov [rect.left], eax
+  add [rect.left], TEXT_MARGIN_LEFT / 2
+  mov eax, [ScreenWidth]
+  mov [rect.right], eax
+
+  mov eax, [ScreenHeight]
+  mov [rect.bottom], eax
+  sub eax, TEXT_FONT_SIZE * 2
+  mov [rect.top], eax
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect] 
+  invoke DrawText, [hDC], ConsoleActiveText, -1, eax, DT_LEFT
+  ret 
+endp
+
 proc RedrawCommand uses edi eax
   local rect RECT
   mov edi, ConsoleInpBuf 
@@ -584,10 +605,14 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     cmp [ConsoleInputMode], 1
     jne .switchTO1
     mov [ConsoleInputMode], 0
+    mov [ConsoleCharsN], 0
+    stdcall RedrawCommand
     jmp .finish
     .switchTO1:
     mov [ConsoleInputMode], 1
-    jmp .finish
+    stdcall DrawCursor
+     
+    jmp .full_skip
 
     @@:
     cmp [wparam], VK_ESCAPE
@@ -656,7 +681,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
 
     stdcall RedrawCommand
     
-    jmp .finish
+    jmp .full_skip
 
     @@:
     cmp [wparam], VK_BACK
@@ -667,7 +692,12 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     .GreaterThenZero:
       dec [ConsoleCharsN]
     
-    jmp .finish
+    cmp [ConsoleCharsN], 0
+    jne .finish 
+
+    stdcall DrawCursor
+
+    jmp .full_skip
 
     @@:
     cmp [ConsoleCharsN], ConsoleBufSize

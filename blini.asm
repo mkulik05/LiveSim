@@ -108,7 +108,6 @@ section '.data' data readable writeable
   ConsoleBufSave9 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave10 db (ConsoleBufSize + 1) dup ?
 
-  
 
   ; if 1 - input is captured by console, otherwise - by main window
   ; toggled by slash 'tab'
@@ -116,7 +115,7 @@ section '.data' data readable writeable
   ConsoleBufSize = 15
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
   ConsoleCharsN dd 0
-  ConsoleError db 'Invalid instruction', 0
+  ConsoleActiveText db '|', 0
 
   isGUIInited dd 0
   tactNStr TCHAR 'Tact N: ', 0, 0, 0, 0, 0, 0, 0, 0
