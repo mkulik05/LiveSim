@@ -90,10 +90,10 @@ section '.data' data readable writeable
   ; fma - food max amount
   ; fia - food max init amount
   ; fms - food max spawn amount
-  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'amc', 'mce', 'fma', 'fia', 'fms', 'fsa'
+  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'mce', 'fma', 'fia', 'fms', 'fsa'
   COMMAND_LEN = 3
   CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount, NextFoodSpawnNMax
-  COMMANDS_N = 12
+  COMMANDS_N = 11
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufSavesN dd 10
   ConsoleBufCurrSave dd -1
