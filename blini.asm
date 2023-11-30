@@ -90,10 +90,10 @@ section '.data' data readable writeable
   ; fma - food max amount
   ; fia - food max init amount
   ; fms - food max spawn amount
-  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'amc', 'mce', 'fma', 'fia', 'fms'
+  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'amc', 'mce', 'fma', 'fia', 'fms', 'fsa'
   COMMAND_LEN = 3
-  CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount
-  COMMANDS_N = 11
+  CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount, NextFoodSpawnNMax
+  COMMANDS_N = 12
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufSavesN dd 10
   ConsoleBufCurrSave dd -1
@@ -114,16 +114,19 @@ section '.data' data readable writeable
   ConsoleInputMode dd 0
   ConsoleBufSize = 15
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
+  ConsoleErrorMsg db 'Error', 0
   ConsoleCharsN dd 0
   ConsoleActiveText db '|', 0
 
   isGUIInited dd 0
-  tactNStr TCHAR 'Tact N: ', 0, 0, 0, 0, 0, 0, 0, 0
-  tactNStrStartI = 8
-  agentsNStr TCHAR 'Agents N: ', 0, 0, 0, 0, 0, 0, 0, 0
-  agentsNStrStartI = 10
-  foodNStr TCHAR 'Food N: ', 0, 0, 0, 0, 0, 0, 0, 0
-  foodNStrStartI = 8
+  maxTextWidth dd 0
+  numStr TCHAR 0, 0, 0, 0, 0, 0
+  tactNStr TCHAR 'Tact: ', 0
+  tactNStrLen = 6
+  agentsNStr TCHAR 'Agents: ', 0
+  agentsNStrLen = 8
+  foodNStr TCHAR 'Food: ', 0
+  foodNStrLen = 6
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
@@ -173,6 +176,7 @@ proc start
   stdcall calcCellSize ; will put result into CellSizePX constant
   stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
   stdcall drawField
+  stdcall calcLeftTextOffset
   stdcall startGame
 
   invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
@@ -457,7 +461,8 @@ section '.idata' import data readable writeable
          CreateSolidBrush, 'CreateSolidBrush',\
          SelectObject, 'SelectObject', \
          CreateFontIndirect, 'CreateFontIndirectA', \
-         SetDIBitsToDevice, 'SetDIBitsToDevice'
+         SetDIBitsToDevice, 'SetDIBitsToDevice', \
+         GetTextExtentPoint32, 'GetTextExtentPoint32A'
   include 'field.asm'
   include 'assistive.asm'
   include 'gui.asm'

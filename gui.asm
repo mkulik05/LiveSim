@@ -61,8 +61,10 @@ proc PrintStats
   local rect RECT
 
   ; tact number
-  stdcall IntToStr, [TotalTacts], tactNStr, tactNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  stdcall IntToStr, [TotalTacts], numStr, 0 ; Assuming tactNStrStartI is the starting index for the number in tactNStr
   mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [maxTextWidth]
+  add [rect.left], eax
   mov eax, [FieldXOffset]
   mov [rect.right], eax
   mov [rect.top], TEXT_MARGIN_TOP
@@ -70,10 +72,12 @@ proc PrintStats
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], tactNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
 
-  stdcall IntToStr, [AgentsSize], agentsNStr, agentsNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  stdcall IntToStr, [AgentsSize], numStr, 0 ; Assuming tactNStrStartI is the starting index for the number in tactNStr
   mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [maxTextWidth]
+  add [rect.left], eax
   mov eax, [FieldXOffset]
   mov [rect.right], eax
   
@@ -82,10 +86,12 @@ proc PrintStats
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], agentsNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
 
-  stdcall IntToStr, [FoodSize], foodNStr, foodNStrStartI ; Assuming tactNStrStartI is the starting index for the number in tactNStr
+  stdcall IntToStr, [FoodSize], numStr, 0 ; Assuming tactNStrStartI is the starting index for the number in tactNStr
   mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [maxTextWidth]
+  add [rect.left], eax
   mov eax, [FieldXOffset]
   mov [rect.right], eax
   
@@ -94,7 +100,7 @@ proc PrintStats
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], foodNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
 
   ret 
 endp
@@ -163,6 +169,61 @@ proc calcCellSize
 
   ret
 endp
+
+proc calcLeftTextOffset
+  local sizee SIZE
+  local rect RECT
+  ; calculating offsets 
+  lea eax, [sizee]
+  invoke GetTextExtentPoint32, [hDC], tactNStr, tactNStrLen, eax
+
+  mov eax, [sizee.cx]
+  mov [maxTextWidth], eax
+
+  lea eax, [sizee]
+  invoke GetTextExtentPoint32, [hDC], agentsNStr, agentsNStrLen, eax 
+
+  mov eax, [sizee.cx]
+  cmp eax, [maxTextWidth]
+  jb @F 
+    mov [maxTextWidth], eax
+  @@:
+
+  lea eax, [sizee]
+  invoke GetTextExtentPoint32, [hDC], foodNStr, foodNStrLen, eax 
+
+  mov eax, [sizee.cx]
+  cmp eax, [maxTextWidth]
+  jb @F 
+    mov [maxTextWidth], eax
+  @@:
+  
+
+  mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [FieldXOffset]
+  mov [rect.right], eax
+  mov [rect.top], TEXT_MARGIN_TOP
+  mov [rect.bottom], TEXT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect] 
+  invoke DrawText, [hDC], tactNStr, -1, eax, DT_LEFT
+
+  mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
+  mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect]
+  invoke DrawText, [hDC], agentsNStr, -1, eax, DT_LEFT
+
+  mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
+  mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2 + TEXT_FONT_SIZE * 2 
+  lea eax, [rect] 
+  invoke FillRect, [hDC], eax, [bkgBrush]
+  lea eax, [rect]
+  invoke DrawText, [hDC], foodNStr, -1, eax, DT_LEFT
+  ret 
+endp 
 
 proc calcFieldOffsets
   mov ebx, [FieldHeight]
@@ -282,6 +343,8 @@ proc drawBkg
 endp
 
 proc GUIBasicInit
+  local sizee SIZE 
+  local rect RECT
 
   ; getting screen X size and Y
   invoke GetSystemMetrics, SM_CXSCREEN
@@ -575,8 +638,11 @@ proc ProcessCommand uses edi esi ecx edx
     sub [AgentMinEnergyToClone], 2 
   @@: 
 
+  jmp @F
   .stopProcessing:
-
+    invoke MessageBox, 0, ConsoleErrorMsg, ConsoleErrorMsg, MB_OK
+    stdcall WriteMsg, ConsoleErrorMsg
+  @@:
   ret 
 endp
 
