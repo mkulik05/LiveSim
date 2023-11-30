@@ -121,12 +121,12 @@ section '.data' data readable writeable
   isGUIInited dd 0
   maxTextWidth dd 0
   numStr TCHAR 0, 0, 0, 0, 0, 0
-  tactNStr TCHAR 'Tact: ', 0
-  tactNStrLen = 6
-  agentsNStr TCHAR 'Agents: ', 0
-  agentsNStrLen = 8
-  foodNStr TCHAR 'Food: ', 0
-  foodNStrLen = 6
+  tactNStr TCHAR 'Tact ', 0
+  tactNStrLen = 5
+  agentsNStr TCHAR 'Agents      ', 0
+  agentsNStrLen = 12
+  foodNStr TCHAR 'Food ', 0
+  foodNStrLen = 5
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
