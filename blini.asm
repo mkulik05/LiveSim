@@ -19,7 +19,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 256
+  FieldSize dd 4
   FieldCellSize = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -90,10 +90,19 @@ section '.data' data readable writeable
   ; fma - food max amount
   ; fia - food max init amount
   ; fms - food max spawn amount
-  ConsoleCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'mce', 'fma', 'fia', 'fms', 'fsa'
-  COMMAND_LEN = 3
+  ConsoleEditCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'mce', 'fma', 'fia', 'fms', 'fsa'
+  COMMAND_EDIT_LEN = 3
   CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount, NextFoodSpawnNMax
-  COMMANDS_N = 11
+  COMMANDS_EDIT_N = 11
+
+  ; unlike ConsoleEditCommands - action commands are not just editing corresponding label
+  ; each calls corresponding function with number param
+  ; cfs - change field
+  ConsoleActionCommands db 'cfs'
+  COMMAND_ACTION_LEN = 3
+  CommandsActionLabel dd CommandChangeFieldSize
+  COMMANDS_ACTION_N = 1
+
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufSavesN dd 10
   ConsoleBufCurrSave dd -1
@@ -120,7 +129,7 @@ section '.data' data readable writeable
 
   isGUIInited dd 0
   maxTextWidth dd 0
-  numStr TCHAR 0, 0, 0, 0, 0, 0
+  numStr TCHAR 0, 0, 0, 0, 0, 0, 0, 0, 0
   tactNStr TCHAR 'Tact ', 0
   tactNStrLen = 5
   agentsNStr TCHAR 'Agents      ', 0
@@ -149,42 +158,6 @@ section '.data' data readable writeable
   
 
 section '.text' code readable executable
-
-proc EntryPoint
-  stdcall Initialisation
-  stdcall calcMaxConsoleLines
-  stdcall fillField
-
-  stdcall RandInt, [NextFoodSpawnTMax]
-  inc eax
-  mov [NextFoodSpawnT], eax
-
-  stdcall RandInt, [NextFoodSpawnNMax]
-  inc eax
-  mov [NextFoodSpawnN], eax
-
-  stdcall start
-  ret 
-endp
-
-proc start
-
-  push [FoodSize]
-  push [AgentsSize]
-
-  stdcall drawBkg
-  stdcall calcCellSize ; will put result into CellSizePX constant
-  stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
-  stdcall drawField
-  stdcall calcLeftTextOffset
-  stdcall startGame
-
-  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
-  ; cleaning up
-  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
-  invoke ExitProcess, 0
-  ret
-endp
 
 ; based on fieldSize calc TotalAllocSize, allocMem, calculate agent and food vectors addrs, screen buf addr
 proc Initialisation
@@ -244,6 +217,42 @@ proc Initialisation
   mul [FoodRecSize] 
   add ebx, eax
   mov [ScreenBufAddr], ebx
+  ret
+endp
+
+proc EntryPoint
+  stdcall Initialisation
+  stdcall calcMaxConsoleLines
+  stdcall fillField
+
+  stdcall RandInt, [NextFoodSpawnTMax]
+  inc eax
+  mov [NextFoodSpawnT], eax
+
+  stdcall RandInt, [NextFoodSpawnNMax]
+  inc eax
+  mov [NextFoodSpawnN], eax
+
+  stdcall start
+  ret 
+endp
+
+proc start
+
+  push [FoodSize]
+  push [AgentsSize]
+
+  stdcall drawBkg
+  stdcall calcCellSize ; will put result into CellSizePX constant
+  stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
+  stdcall drawField
+  stdcall calcLeftTextOffset
+  stdcall startGame
+
+  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
+  ; cleaning up
+  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
+  invoke ExitProcess, 0
   ret
 endp
 
@@ -464,8 +473,9 @@ section '.idata' import data readable writeable
          SetDIBitsToDevice, 'SetDIBitsToDevice', \
          GetTextExtentPoint32, 'GetTextExtentPoint32A'
   include 'field.asm'
-  include 'assistive.asm'
-  include 'gui.asm'
   include 'agents.asm'
   include 'food.asm'
+  include 'assistive.asm'
+  include 'gui.asm'
+  include 'commands.asm'
   include 'files.asm'

@@ -199,7 +199,7 @@ proc calcLeftTextOffset
   @@:
   
 
-  mov [rect.left], TEXT_MARGIN_LEFT
+  mov [rect.left], TEXT_MARGIN_LEFT * 2
   mov eax, [FieldXOffset]
   mov [rect.right], eax
   mov [rect.top], TEXT_MARGIN_TOP
@@ -207,21 +207,26 @@ proc calcLeftTextOffset
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], tactNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], tactNStr, tactNStrLen, eax, DT_LEFT
+  cmp eax, 0
+  jne @F 
+    xor eax, eax 
+    div eax
+  @@:
 
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], agentsNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], agentsNStr, agentsNStrLen, eax, DT_LEFT
 
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2 + TEXT_FONT_SIZE * 2 
   lea eax, [rect] 
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], foodNStr, -1, eax, DT_LEFT
+  invoke DrawText, [hDC], foodNStr, foodNStrLen, eax, DT_LEFT
   ret 
 endp 
 
@@ -550,99 +555,6 @@ proc RedrawCommand uses edi eax
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect] 
   invoke DrawText, [hDC], ConsoleInpBuf, -1, eax, DT_LEFT
-  ret 
-endp
-
-proc ProcessCommand uses edi esi ecx edx
-  cmp dword[ConsoleCharsN], COMMAND_LEN + 2 ; command, space, number
-  jb .stopProcessing
-
-  mov ecx, COMMANDS_N
-  xor ebx, ebx ; index of selected command
-  .checkCommand:  
-
-    ; calculating index of current checked command in array
-    mov edi, ConsoleCommands
-    mov eax, COMMAND_LEN 
-    mul ebx
-    add edi, eax
-
-    mov esi, ConsoleInpBuf
-    push ecx
-    mov ecx, COMMAND_LEN
-    repe cmpsb 
-    pop ecx
-    jne .nextCommand ; command did not match
-    jmp .foundCommand
-
-    .nextCommand:
-      inc ebx
-  loop .checkCommand
-
-  jmp .stopProcessing
-
-  .foundCommand:
-
-  ; so StrToIntW function will stop after meeting zero
-  mov edi, ConsoleInpBuf
-  add edi, COMMAND_LEN
-  mov ecx, [ConsoleCharsN]
-  sub ecx, COMMAND_LEN
-
-  .getToFirstNum:
-    cmp byte[edi], '0'
-    jb @F 
-    cmp byte[edi], '9'
-    ja @F
-
-    jmp .foundNum
-    @@:
-    inc edi
-  loop .getToFirstNum
-
-  jmp .stopProcessing
-
-  .foundNum:
-  xor eax, eax ; store result number
-  .numberLoop:
-    mov edx, 10
-    mul edx
-    cmp byte[edi], '0'
-    jb .stopProcessing
-    cmp byte[edi], '9'
-    ja .stopProcessing
-
-    add al, byte[edi]
-    sub eax, '0'
-
-    inc edi
-  loop .numberLoop
-
-  ; parsed number
-  mov esi, CommandsEditLabel
-  shl ebx, 2
-  add esi, ebx
-
-  mov esi, [esi]
-  mov [esi], eax
-
-  ; checking there to not slow dowd game loop
-  ; AgentEnergyToMove + 2 <= AgentMinEnergyToClone
-  ; cause energy is splitted, then decresed, so it should be hndled correctly
-  mov ebx, [AgentEnergyToClone]
-  add ebx, 2
-
-  cmp ebx, [AgentMinEnergyToClone]
-  jbe @F 
-    mov [AgentMinEnergyToClone], ebx
-    sub [AgentMinEnergyToClone], 2 
-  @@: 
-
-  jmp @F
-  .stopProcessing:
-    invoke MessageBox, 0, ConsoleErrorMsg, ConsoleErrorMsg, MB_OK
-    stdcall WriteMsg, ConsoleErrorMsg
-  @@:
   ret 
 endp
 
