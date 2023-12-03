@@ -89,7 +89,7 @@ proc ProcessCommand uses edi esi ecx edx
   jmp .StopProcessingOk
 
   .ChechIsItAction:
-  cmp dword[ConsoleCharsN], COMMAND_ACTION_LEN + 2 ; command, space, number
+  cmp dword[ConsoleCharsN], COMMAND_ACTION_LEN ; command
   jb .StopProcessingErr
 
   mov ecx, COMMANDS_ACTION_N
@@ -117,11 +117,14 @@ proc ProcessCommand uses edi esi ecx edx
   jmp .StopProcessingErr
 
   .foundCommand2:
+  mov ecx, [ConsoleCharsN]
+  sub ecx, COMMAND_EDIT_LEN
+  cmp [ConsoleActionNeedParam + ebx], 0
+  je .SkipParamParse
 
   mov edi, ConsoleInpBuf
   add edi, COMMAND_EDIT_LEN
-  mov ecx, [ConsoleCharsN]
-  sub ecx, COMMAND_EDIT_LEN
+
 
   .getToFirstNum2:
     cmp byte[edi], '0'
@@ -153,7 +156,9 @@ proc ProcessCommand uses edi esi ecx edx
   loop .numberLoop2
 
   pop ebx
-
+  .SkipParamParse:
+  cmp ecx, 0
+  jne .StopProcessingErr
   mov esi, CommandsActionLabel
   shl ebx, 2
   add esi, ebx
@@ -161,7 +166,6 @@ proc ProcessCommand uses edi esi ecx edx
   stdcall dword[esi], eax
 
   jmp .StopProcessingOk
-
 
   .StopProcessingErr:
     invoke MessageBox, 0, ConsoleErrorMsg, ConsoleErrorMsg, MB_OK
@@ -182,6 +186,25 @@ proc CommandChangeFieldSize, num
   ; mov [PauseGame], 1
   mov [AgentsSize], 0
   mov [FoodSize], 0
+  mov [ConsoleBufCurrSave], -1
   stdcall EntryPoint  
+  ret 
+endp
+
+proc CommandReset, num
+  mov [TotalTacts], 0
+  mov [ConsoleCharsN], 0
+  mov [AgentsSize], 0
+  mov [FoodSize], 0
+  mov [ConsoleBufCurrSave], -1
+  stdcall EntryPoint  
+  ret 
+endp
+
+proc CommandChangeFoodSpawnAmount, num 
+  mov eax, [num]
+  mov [NextFoodSpawnNMax], eax
+  stdcall RandInt, eax 
+  mov [NextFoodSpawnN], eax
   ret 
 endp

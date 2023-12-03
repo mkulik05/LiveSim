@@ -90,18 +90,20 @@ section '.data' data readable writeable
   ; fma - food max amount
   ; fia - food max init amount
   ; fms - food max spawn amount
-  ConsoleEditCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'mce', 'fma', 'fia', 'fms', 'fsa'
+  ConsoleEditCommands db 'ame', 'ace', 'amo', 'fgl', 'fgt', 'tft', 'mce', 'fma', 'fia', 'fms'
   COMMAND_EDIT_LEN = 3
-  CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount, NextFoodSpawnNMax
-  COMMANDS_EDIT_N = 11
+  CommandsEditLabel dd AgentEnergyToMove, AgentEnergyToClone, AgentMutationOdds, FoodGrowMaxValue, TimeForFoodToGrow, FrameDelayMs, AgentMinEnergyToClone, FoodMaxValue, FoodMaxInitAmount, SpawnedFoodMaxAmount
+  COMMANDS_EDIT_N = 10
 
   ; unlike ConsoleEditCommands - action commands are not just editing corresponding label
   ; each calls corresponding function with number param
   ; cfs - change field
-  ConsoleActionCommands db 'cfs'
+  ; fsa - foos spawn amount
+  ConsoleActionCommands db 'cfs', 'rst', 'fsa'
+  ConsoleActionNeedParam db 1, 0, 1
   COMMAND_ACTION_LEN = 3
-  CommandsActionLabel dd CommandChangeFieldSize
-  COMMANDS_ACTION_N = 1
+  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount
+  COMMANDS_ACTION_N = 3
 
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufSavesN dd 10
@@ -153,8 +155,8 @@ section '.data' data readable writeable
   fname1 TCHAR 'C:\Users\mk\Documents\blini\ws\coolfile1', 0
   fname2 TCHAR 'C:\Users\mk\Documents\blini\ws\coolfile2', 0
   allocFailedMsg db 'allocation failed', 0
-  deathMsg db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
-  deathMsg2 db 'Everyone died', 0
+  deathMsg2 db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
+  deathMsg db 'Each agent died', 0
   
 
 section '.text' code readable executable
@@ -249,11 +251,35 @@ proc start
   stdcall calcLeftTextOffset
   stdcall startGame
 
-  invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
+  ; invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
   ; cleaning up
-  invoke HeapFree, [HeapHandle], 0, [FieldAddr]
-  invoke ExitProcess, 0
+  stdcall GameOverProc
+
+  ; invoke HeapFree, [HeapHandle], 0, [FieldAddr]
+  ; invoke ExitProcess, 0
   ret
+endp
+
+proc GameOverProc 
+  local rect RECT 
+  mov eax, [XFieldOffset] 
+  add eax, [FieldXOffset]
+  mov [rect.left], eax
+  add eax, [FieldWidth]
+  mov [rect.right], eax
+  mov [rect.top], 0
+  mov eax, [FieldHeight]
+  mov [rect.bottom], eax
+  
+  lea eax, [rect]
+  invoke DrawText, [hDC], deathMsg, -1, eax, DT_CENTER
+  ; game can be reseted using console
+  mov [PauseGame], 1
+  .Paused:
+    invoke Sleep, PauseWaitTime 
+    stdcall ProcessWindowMsgs
+  jmp .Paused
+  ret 
 endp
 
 proc startGame

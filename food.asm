@@ -1,5 +1,7 @@
 proc GenFood uses ecx ebx esi edi
   mov ecx, [NextFoodSpawnN]
+  cmp ecx, 0
+  je StopSpawn
   .SpawnFood:
 
     ; getting index in which food will be spawned
@@ -106,6 +108,8 @@ proc GenFood uses ecx ebx esi edi
       dec ecx 
       cmp ecx, 0
       jne .SpawnFood
+
+  StopSpawn:
   ret 
 endp
 
