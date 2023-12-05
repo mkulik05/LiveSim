@@ -267,12 +267,22 @@ proc GameOverProc
   mov [rect.left], eax
   add eax, [FieldWidth]
   mov [rect.right], eax
-  mov [rect.top], 0
   mov eax, [FieldHeight]
   mov [rect.bottom], eax
-  
+  shr eax, 1
+  mov [rect.top], eax
+  sub [rect.top], TEXT_FONT_SIZE
+  add [rect.bottom], TEXT_FONT_SIZE
+
+  push [lf.lfHeight]
+  mov [lf.lfHeight], TEXT_FONT_SIZE * 2
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hDC], eax
   lea eax, [rect]
   invoke DrawText, [hDC], deathMsg, -1, eax, DT_CENTER
+  pop [lf.lfHeight]
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hDC], eax
   ; game can be reseted using console
   mov [PauseGame], 1
   .Paused:
