@@ -54,9 +54,15 @@ proc ProcessCommand uses edi esi ecx edx
     mov edx, 10
     mul edx
     cmp byte[edi], '0'
-    jb .ChechIsItAction
+    jae @F 
+    pop ebx
+    jmp .ChechIsItAction
+    @@:
     cmp byte[edi], '9'
-    ja .ChechIsItAction
+    jbe @F 
+    pop ebx
+    jmp .ChechIsItAction
+    @@:
 
     mov bl, byte[edi]
     add eax, ebx
@@ -145,9 +151,15 @@ proc ProcessCommand uses edi esi ecx edx
     mov edx, 10
     mul edx
     cmp byte[edi], '0'
-    jb .StopProcessingErr
+    jae @F 
+    pop ebx
+    jmp .StopProcessingErr
+    @@:
     cmp byte[edi], '9'
-    ja .StopProcessingErr
+    jbe @F 
+    pop ebx
+    jmp .StopProcessingErr
+    @@:
     mov bl, byte[edi]
     add eax, ebx
     sub eax, '0'
