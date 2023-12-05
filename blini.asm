@@ -123,7 +123,7 @@ section '.data' data readable writeable
   ; if 1 - input is captured by console, otherwise - by main window
   ; toggled by slash 'tab'
   ConsoleInputMode dd 0
-  ConsoleBufSize = 15
+  ConsoleBufSize = 7
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
   ConsoleErrorMsg db 'Error', 0
   ConsoleCharsN dd 0
@@ -157,6 +157,7 @@ section '.data' data readable writeable
   allocFailedMsg db 'allocation failed', 0
   deathMsg2 db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg db 'Each agent died', 0
+  genFieldMsg db 'Generating field...', 0
   
 
 section '.text' code readable executable
@@ -225,6 +226,7 @@ endp
 proc EntryPoint
   stdcall Initialisation
   stdcall calcMaxConsoleLines
+  stdcall ShowGeneratingFieldMsg
   stdcall fillField
 
   stdcall RandInt, [NextFoodSpawnTMax]
@@ -260,12 +262,34 @@ proc start
   ret
 endp
 
+proc ShowGeneratingFieldMsg
+  local rect RECT 
+  mov [rect.left], 0
+  mov eax, [ScreenWidth]
+  mov [rect.right], eax
+  mov eax, [FieldHeight]
+  mov [rect.bottom], eax
+  shr eax, 1
+  mov [rect.top], eax
+  sub [rect.top], TEXT_FONT_SIZE
+  add [rect.bottom], TEXT_FONT_SIZE
+
+  push [lf.lfHeight]
+  mov [lf.lfHeight], TEXT_FONT_SIZE * 2
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hDC], eax
+  lea eax, [rect]
+  invoke DrawText, [hDC], genFieldMsg, -1, eax, DT_CENTER
+  pop [lf.lfHeight]
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hDC], eax
+  ret 
+endp
+
 proc GameOverProc 
   local rect RECT 
-  mov eax, [XFieldOffset] 
-  add eax, [FieldXOffset]
-  mov [rect.left], eax
-  add eax, [FieldWidth]
+  mov [rect.left], 0
+  mov eax, [ScreenWidth]
   mov [rect.right], eax
   mov eax, [FieldHeight]
   mov [rect.bottom], eax
@@ -429,7 +453,6 @@ proc startGame
         add [NextFoodSpawnT], eax
         
         stdcall RandInt, [NextFoodSpawnNMax]
-        inc eax
         mov [NextFoodSpawnN], eax
       @@:
 
