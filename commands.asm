@@ -220,3 +220,32 @@ proc CommandChangeFoodSpawnAmount, num
   mov [NextFoodSpawnN], eax
   ret 
 endp
+
+proc CommandAgentDraw, n
+  mov [PauseGame], 1
+  mov [isDrawingActive], 1
+  mov [isDrawingAgent], 1
+  mov [isDrawingClear], 0
+  ret 
+endp
+
+proc CommandFoodDraw, n 
+  mov [PauseGame], 1
+  mov [isDrawingActive], 1
+  mov [isDrawingAgent], 0
+  mov [isDrawingClear], 0
+  ret 
+endp
+
+proc CommandStopDraw, n 
+  mov [isDrawingActive], 0
+  mov [isDrawingClear], 0
+  ret 
+endp
+
+proc CommandClearDraw, n 
+  mov [isDrawingAgent], 0
+  mov [isDrawingActive], 1
+  mov [isDrawingClear], 1
+  ret 
+endp

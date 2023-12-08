@@ -208,8 +208,8 @@ proc loadField uses esi edi ebx edx, fName
     mov edi, [FieldAddr]
     mov ebx, [esi + AGENT_COORDS_OFFSET]
     mov eax, [lastI]
-    mov [edi + ebx * FieldCellSize], eax 
-    or dword[edi + ebx * FieldCellSize], FIELD_AGENT_STATE
+    mov [edi + ebx * FIELD_CELL_SIZE], eax 
+    or dword[edi + ebx * FIELD_CELL_SIZE], FIELD_AGENT_STATE
     inc [lastI]
     add esi, [AgentRecSize]
   pop ecx
@@ -253,8 +253,8 @@ proc loadField uses esi edi ebx edx, fName
     mov edi, [FieldAddr]
     mov ebx, [esi + FOOD_COORDS_OFFSET]
     mov eax, [lastI]
-    mov [edi + ebx * FieldCellSize], eax 
-    or dword[edi + ebx * FieldCellSize], FIELD_FOOD_STATE
+    mov [edi + ebx * FIELD_CELL_SIZE], eax 
+    or dword[edi + ebx * FIELD_CELL_SIZE], FIELD_FOOD_STATE
     inc [lastI]
     add esi, [FoodRecSize]
     pop ecx

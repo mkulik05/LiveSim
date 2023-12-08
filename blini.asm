@@ -19,8 +19,8 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 4
-  FieldCellSize = 4
+  FieldSize dd 128
+  FIELD_CELL_SIZE = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
   FIELD_FOOD_STATE = 1000_0000_0000_0000_0000_0000_0000_0000b
@@ -74,10 +74,19 @@ section '.data' data readable writeable
   XFieldOffset dd 0
   YFieldOffset dd 0
 
-  FieldHeight dd 0
-  FieldWidth dd 0
-  FieldXOffset dd 0
-  FieldYOffset dd 0
+  FieldSizePx dd 0
+  FieldZoneHeight dd 0
+  FieldZoneWidth dd 0
+  FieldXInOffset dd 0
+  FieldYInOffset dd 0
+
+; ------ DRAWING
+
+  isDrawingActive dd 0
+  isDrawingAgent dd 0
+  isDrawingClear dd 0
+
+; ------ CONSOLE
 
   ; Process commands
   ; ame - agent move energy
@@ -99,14 +108,17 @@ section '.data' data readable writeable
   ; each calls corresponding function with number param
   ; cfs - change field
   ; fsa - foos spawn amount
-  ConsoleActionCommands db 'cfs', 'rst', 'fsa'
-  ConsoleActionNeedParam db 1, 0, 1
+  ; dra - draw agent
+  ; drf - draw food
+  ; drs - draw stop 
+  ConsoleActionCommands db 'cfs', 'rst', 'fsa', 'dra', 'drf', 'drs', 'drc'
+  ConsoleActionNeedParam db 1, 0, 1, 0, 0, 0, 0
   COMMAND_ACTION_LEN = 3
-  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount
-  COMMANDS_ACTION_N = 3
+  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw
+  COMMANDS_ACTION_N = 7
 
-  ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufSavesN dd 10
+  ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufCurrSave dd -1
   ConsoleBufSave1 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave2 db (ConsoleBufSize + 1) dup ?
@@ -123,7 +135,7 @@ section '.data' data readable writeable
   ; if 1 - input is captured by console, otherwise - by main window
   ; toggled by slash 'tab'
   ConsoleInputMode dd 0
-  ConsoleBufSize = 7
+  ConsoleBufSize = 10
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
   ConsoleErrorMsg db 'Error', 0
   ConsoleCharsN dd 0
@@ -164,7 +176,7 @@ section '.text' code readable executable
 
 ; based on fieldSize calc TotalAllocSize, allocMem, calculate agent and food vectors addrs, screen buf addr
 proc Initialisation
-  mov eax, FieldCellSize
+  mov eax, FIELD_CELL_SIZE
   mul [FieldSize]
   mul [FieldSize]
 
@@ -194,8 +206,8 @@ proc Initialisation
   add [TotalAllocSize], eax ; total size
 
   ; getting amount of bytes for screen buffer
-  mov eax, [FieldWidth]
-  mul [FieldHeight]
+  mov eax, [FieldZoneWidth]
+  mul [FieldZoneHeight]
   shl eax, 2
   add [TotalAllocSize], eax
 
@@ -203,7 +215,7 @@ proc Initialisation
 
   ; calculating AgentsAddr
   mov ebx, [FieldAddr]
-  mov eax, FieldCellSize
+  mov eax, FIELD_CELL_SIZE
   mul [FieldSize]
   mul [FieldSize]
   add ebx, eax
@@ -243,22 +255,21 @@ endp
 
 proc start
 
-  push [FoodSize]
-  push [AgentsSize]
-
   stdcall drawBkg
   stdcall calcCellSize ; will put result into CellSizePX constant
+  
+  mov eax, [FieldSize]
+  mul [CellSizePX]
+  mov [FieldSizePx], eax
+  
   stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
   stdcall drawField
   stdcall calcLeftTextOffset
   stdcall startGame
 
-  ; invoke MessageBox, 0, deathMsg, deathMsg2, MB_OK
-  ; cleaning up
+
   stdcall GameOverProc
 
-  ; invoke HeapFree, [HeapHandle], 0, [FieldAddr]
-  ; invoke ExitProcess, 0
   ret
 endp
 
@@ -267,7 +278,7 @@ proc ShowGeneratingFieldMsg
   mov [rect.left], 0
   mov eax, [ScreenWidth]
   mov [rect.right], eax
-  mov eax, [FieldHeight]
+  mov eax, [FieldZoneHeight]
   mov [rect.bottom], eax
   shr eax, 1
   mov [rect.top], eax
@@ -291,7 +302,7 @@ proc GameOverProc
   mov [rect.left], 0
   mov eax, [ScreenWidth]
   mov [rect.right], eax
-  mov eax, [FieldHeight]
+  mov eax, [FieldZoneHeight]
   mov [rect.bottom], eax
   shr eax, 1
   mov [rect.top], eax
@@ -322,7 +333,7 @@ proc startGame
 
   gameLoop:
     stdcall PrintStats  
-    invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
+    invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
     stdcall ProcessWindowMsgs
 
     cmp [PutOnPauseNextTact], 1
@@ -362,7 +373,7 @@ proc startGame
         mov ebx, [FieldAddr]
         push edi 
         mov edi, [edi + AGENT_COORDS_OFFSET]
-        xor dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+        xor dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
         pop edi
         stdcall bufClearCell, [edi + AGENT_COORDS_OFFSET]
         stdcall removeVecItem, [AgentsAddr], AgentsSize, [AgentRecSize], AGENT_COORDS_OFFSET, esi

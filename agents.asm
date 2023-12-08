@@ -16,7 +16,7 @@ proc AgentMoveTop uses esi edi ebx edx, ind
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2 
   add ebx, eax
-  test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+  test dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
   
   mov dword[ebx], 0
@@ -32,18 +32,18 @@ proc AgentMoveTop uses esi edi ebx edx, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
   ; edi is already negative
-  or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
 
-  test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + edi * FIELD_CELL_SIZE], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
     stdcall CalcAgentColor, eax
     stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
   .almostfinish:
-    and dword[ebx + edi * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+    and dword[ebx + edi * FIELD_CELL_SIZE], 1100_0000_0000_0000_0000_0000_0000_0000b
     mov eax, [ind]
-    or  dword[ebx + edi * FieldCellSize], eax
+    or  dword[ebx + edi * FIELD_CELL_SIZE], eax
   .finish:
   
   ret
@@ -67,7 +67,7 @@ proc AgentMoveDown uses esi edi ebx edx, ind
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
   add ebx, eax
-  test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+  test dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov dword[ebx], 0
@@ -82,9 +82,9 @@ proc AgentMoveDown uses esi edi ebx edx, ind
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
 
-  or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
 
-  test dword[ebx + edi * FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + edi * FIELD_CELL_SIZE], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
@@ -92,9 +92,9 @@ proc AgentMoveDown uses esi edi ebx edx, ind
     stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
 
   .almostfinish: 
-  and dword[ebx + edi * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  and dword[ebx + edi * FIELD_CELL_SIZE], 1100_0000_0000_0000_0000_0000_0000_0000b
   mov eax, [ind]
-  or  dword[ebx + edi * FieldCellSize], eax
+  or  dword[ebx + edi * FIELD_CELL_SIZE], eax
   .finish:
   
   ret
@@ -119,7 +119,7 @@ proc AgentMoveRight uses esi edi ebx edx, ind
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
   add ebx, eax
-  test dword[ebx + FieldCellSize], FIELD_AGENT_STATE
+  test dword[ebx + FIELD_CELL_SIZE], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov dword[ebx], 0
@@ -133,9 +133,9 @@ proc AgentMoveRight uses esi edi ebx edx, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
 
-  or dword[ebx + FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx + FIELD_CELL_SIZE], FIELD_AGENT_STATE
 
-  test dword[ebx + FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx + FIELD_CELL_SIZE], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
@@ -143,9 +143,9 @@ proc AgentMoveRight uses esi edi ebx edx, ind
     stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
   
   .almostfinish:
-  and dword[ebx + FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  and dword[ebx + FIELD_CELL_SIZE], 1100_0000_0000_0000_0000_0000_0000_0000b
   mov eax, [ind]
-  or  dword[ebx + FieldCellSize], eax
+  or  dword[ebx + FIELD_CELL_SIZE], eax
   .finish:
 
   ret
@@ -169,7 +169,7 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   mov eax, [esi + AGENT_COORDS_OFFSET]
   shl eax, 2
   add ebx, eax
-  test dword[ebx - FieldCellSize], FIELD_AGENT_STATE
+  test dword[ebx - FIELD_CELL_SIZE], FIELD_AGENT_STATE
   jnz .finish ; cell is busy
 
   mov dword[ebx], 0
@@ -183,9 +183,9 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
   movzx edx, word[esi + AGENT_ENERGY_OFFSET]
   stdcall BufMoveAgent, eax, [esi + AGENT_COORDS_OFFSET], edx
   
-  or dword[ebx - FieldCellSize], FIELD_AGENT_STATE
+  or dword[ebx - FIELD_CELL_SIZE], FIELD_AGENT_STATE
 
-  test dword[ebx - FieldCellSize], FIELD_FOOD_STATE ; test is it food cell
+  test dword[ebx - FIELD_CELL_SIZE], FIELD_FOOD_STATE ; test is it food cell
   jz .almostfinish
     stdcall FeedAgent, [ind], [esi + AGENT_COORDS_OFFSET]
     movzx eax, word[esi + AGENT_ENERGY_OFFSET]
@@ -193,9 +193,9 @@ proc AgentMoveLeft uses esi edi ebx edx, ind
     stdcall bufUpdateCellColor, [esi + AGENT_COORDS_OFFSET], eax
  
   .almostfinish:
-  and dword[ebx - FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+  and dword[ebx - FIELD_CELL_SIZE], 1100_0000_0000_0000_0000_0000_0000_0000b
   mov eax, [ind]
-  or  dword[ebx - FieldCellSize], eax
+  or  dword[ebx - FIELD_CELL_SIZE], eax
   .finish:
 
   
@@ -315,7 +315,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   checkIsCellEmpty:
     pop edi
     mov ebx, [FieldAddr]
-    test dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE
+    test dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE
     jz .FoundPlace
     jmp @F
     .FoundPlace:
@@ -346,7 +346,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov ebx, [FieldAddr]
     mov eax, [esi + AGENT_COORDS_OFFSET]
     shl eax, 2
-    or dword[ebx + edi * FieldCellSize], FIELD_AGENT_STATE ; updated new cell
+    or dword[ebx + edi * FIELD_CELL_SIZE], FIELD_AGENT_STATE ; updated new cell
 
     
     
@@ -377,15 +377,15 @@ proc AgentClone uses ecx esi edi ebx edx, ind
     mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
     mov esi, [FieldAddr]
-    test dword[esi + ebx * FieldCellSize], FIELD_FOOD_STATE ; checking is it food cell
+    test dword[esi + ebx * FIELD_CELL_SIZE], FIELD_FOOD_STATE ; checking is it food cell
     jz @F 
       stdcall FeedAgent, [AgentsSize], ebx
     @@:
 
     ; writing new agent id to field
-    and dword[esi + ebx * FieldCellSize], 1100_0000_0000_0000_0000_0000_0000_0000b
+    and dword[esi + ebx * FIELD_CELL_SIZE], 1100_0000_0000_0000_0000_0000_0000_0000b
     mov eax, [AgentsSize]
-    or dword[esi + ebx * FieldCellSize], eax
+    or dword[esi + ebx * FIELD_CELL_SIZE], eax
     movzx ecx, word[edi + AGENT_INSTR_NUM_OFFSET]
     xor ebx, ebx
     .CheckMutation:

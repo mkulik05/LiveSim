@@ -39,7 +39,7 @@ proc drawField uses ecx edi ebx edx ebp esi
     stdcall DrawRect, [ScreenBufAddr], ebx, ebp, [CellSizePX], [CellSizePX], eax
 
     add ebx, [CellSizePX]
-    mov eax, [FieldWidth]
+    mov eax, [FieldZoneWidth]
     sub eax, [XFieldOffset]
     cmp ebx, eax
     jb @F
@@ -48,12 +48,12 @@ proc drawField uses ecx edi ebx edx ebp esi
       add ebp, [CellSizePX]
       mov ebx, [XFieldOffset]
     @@:
-    add edi, FieldCellSize
+    add edi, FIELD_CELL_SIZE
   dec ecx 
   cmp ecx, 0 
   ja .GoThoughFieldCells
 
-  invoke SetDIBitsToDevice, [hDC], [FieldXOffset], [FieldYOffset], [FieldWidth], [FieldHeight], 0, 0, 0, [FieldHeight], [ScreenBufAddr], bmi, 0
+  invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
 
@@ -65,7 +65,7 @@ proc PrintStats
   mov [rect.left], TEXT_MARGIN_LEFT
   mov eax, [maxTextWidth]
   add [rect.left], eax
-  mov eax, [FieldXOffset]
+  mov eax, [FieldXInOffset]
   mov [rect.right], eax
   mov [rect.top], TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2
@@ -78,7 +78,7 @@ proc PrintStats
   mov [rect.left], TEXT_MARGIN_LEFT
   mov eax, [maxTextWidth]
   add [rect.left], eax
-  mov eax, [FieldXOffset]
+  mov eax, [FieldXInOffset]
   mov [rect.right], eax
   
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
@@ -92,7 +92,7 @@ proc PrintStats
   mov [rect.left], TEXT_MARGIN_LEFT
   mov eax, [maxTextWidth]
   add [rect.left], eax
-  mov eax, [FieldXOffset]
+  mov eax, [FieldXInOffset]
   mov [rect.right], eax
   
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
@@ -127,31 +127,31 @@ proc bufClearCell uses ecx edi edx ebx, src
 endp
 
 proc bufUpdateCellColor uses ecx edi edx ebx, src, color
-  local X dd ?
-  local Y dd ?
+  local screenX dd ?
+  local screenY dd ?
 
   mov eax, [src]
   xor edx, edx
   div [FieldSize]
-  mov [X], edx 
-  mov [Y], eax
+  mov [screenX], edx 
+  mov [screenY], eax
 
-  mov eax, [Y]
+  mov eax, [screenY]
   mul [CellSizePX]
   add eax, [YFieldOffset]
-  mov [Y], eax
+  mov [screenY], eax
 
-  mov eax, [X]
+  mov eax, [screenX]
   mul [CellSizePX]
   add eax, [XFieldOffset]
   mov ebx, [color]
-  stdcall DrawRect, [ScreenBufAddr], eax, [Y], [CellSizePX], [CellSizePX], ebx
+  stdcall DrawRect, [ScreenBufAddr], eax, [screenY], [CellSizePX], [CellSizePX], ebx
   ret
 endp
 
 proc calcCellSize
   ; assuming that height is less then width
-  mov eax, [FieldHeight] 
+  mov eax, [FieldZoneHeight] 
   sub eax, 2
   xor edx, edx
   div [FieldSize]
@@ -162,7 +162,7 @@ proc calcCellSize
   jmp .Finished
   .LessThen1PX:
     mov [CellSizePX], 1
-    mov eax, [FieldHeight]
+    mov eax, [FieldZoneHeight]
     mov [FieldSize], eax
     ; NEEDS TO BE DONE
   .Finished:
@@ -200,7 +200,7 @@ proc calcLeftTextOffset
   
 
   mov [rect.left], TEXT_MARGIN_LEFT * 2
-  mov eax, [FieldXOffset]
+  mov eax, [FieldXInOffset]
   mov [rect.right], eax
   mov [rect.top], TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2
@@ -208,11 +208,6 @@ proc calcLeftTextOffset
   invoke FillRect, [hDC], eax, [bkgBrush]
   lea eax, [rect] 
   invoke DrawText, [hDC], tactNStr, tactNStrLen, eax, DT_LEFT
-  cmp eax, 0
-  jne @F 
-    xor eax, eax 
-    div eax
-  @@:
 
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
@@ -231,7 +226,7 @@ proc calcLeftTextOffset
 endp 
 
 proc calcFieldOffsets
-  mov ebx, [FieldHeight]
+  mov ebx, [FieldZoneHeight]
   
   ; getting size of field in pixels
   mov eax, [FieldSize]
@@ -244,7 +239,7 @@ proc calcFieldOffsets
   mov [YFieldOffset], ebx
 
   ; same for X-axis
-  mov ebx, [FieldWidth]
+  mov ebx, [FieldZoneWidth]
   sub ebx, eax
   shr ebx, 1
   mov [XFieldOffset], ebx
@@ -301,7 +296,7 @@ endp
 ; x, y - in pixels 
 proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
   mov ecx, [height]
-  mov eax, [FieldWidth]
+  mov eax, [FieldZoneWidth]
   shl eax, 2
   mul [y]
   mov edi, [buffer]
@@ -316,13 +311,11 @@ proc DrawRect uses eax ebx edx ecx edi, buffer, x, y, height, width, color
       push ecx
 
           mov ecx, [width]
-
-          
           rep stosd
           mov ebx, [width]
           shl ebx, 2
           sub edi, ebx
-          mov ebx, [FieldWidth]
+          mov ebx, [FieldZoneWidth]
           shl ebx, 2
           add edi, ebx
       pop ecx
@@ -333,8 +326,8 @@ endp
 proc drawBkg
   local rect RECT
   mov edi, [ScreenBufAddr]
-  mov eax, [FieldWidth]
-  mul [FieldHeight]
+  mov eax, [FieldZoneWidth]
+  mul [FieldZoneHeight]
   mov ecx, eax
   mov eax, GAME_BKG_COLOR
   rep stosd
@@ -354,16 +347,16 @@ proc GUIBasicInit
   ; getting screen X size and Y
   invoke GetSystemMetrics, SM_CXSCREEN
   mov [ScreenWidth], eax
-  mov [FieldXOffset], eax
+  mov [FieldXInOffset], eax
 
   invoke GetSystemMetrics, SM_CYSCREEN
   mov [ScreenHeight], eax
-  mov [FieldHeight], eax
-  mov [FieldWidth], eax
-  mov [FieldYOffset], 0
+  mov [FieldZoneHeight], eax
+  mov [FieldZoneWidth], eax
+  mov [FieldYInOffset], 0
 
-  sub [FieldXOffset], eax
-  shr [FieldXOffset], 1
+  sub [FieldXInOffset], eax
+  shr [FieldXInOffset], 1
 
 
   invoke GetModuleHandle, 0
@@ -382,9 +375,9 @@ proc GUIBasicInit
   invoke GetDC, [hwnd]
   mov [hDC], eax
   mov [bmi.biSize], sizeof.BITMAPINFOHEADER
-  mov eax, [FieldWidth]
+  mov eax, [FieldZoneWidth]
   mov [bmi.biWidth], eax
-  mov eax, [FieldHeight]
+  mov eax, [FieldZoneHeight]
   mov [bmi.biHeight], eax
   mov [bmi.biPlanes], 1
   mov [bmi.biBitCount], 32
@@ -429,8 +422,8 @@ proc WriteMsg uses edi esi ebx, Msg
   local rect RECT
 
   ; initing them in the start, cause they are constant
-  mov eax, [FieldXOffset]
-  add eax, [FieldWidth] 
+  mov eax, [FieldXInOffset]
+  add eax, [FieldZoneWidth] 
   add [rect.left], eax
   add [rect.left], TEXT_MARGIN_LEFT / 2
   mov eax, [ScreenWidth]
@@ -514,8 +507,8 @@ endp
 proc DrawCursor uses edi eax
   local rect RECT
 
-  mov eax, [FieldXOffset]
-  add eax, [FieldWidth] 
+  mov eax, [FieldXInOffset]
+  add eax, [FieldZoneWidth] 
   mov [rect.left], eax
   add [rect.left], TEXT_MARGIN_LEFT / 2
   mov eax, [ScreenWidth]
@@ -539,9 +532,9 @@ proc RedrawCommand uses edi eax
   mov byte[edi], 0
 
  
-  mov eax, [FieldXOffset]
+  mov eax, [FieldXInOffset]
   mov [rect.left], eax
-  mov eax, [FieldWidth] 
+  mov eax, [FieldZoneWidth] 
   add [rect.left], eax
   add [rect.left], TEXT_MARGIN_LEFT / 2
   mov eax, [ScreenWidth]
@@ -562,19 +555,30 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   cmp [wmsg], WM_DESTROY
   je .wmdestroy
   cmp [wmsg], WM_KEYDOWN
+  je .checkInpMode 
+
+  cmp [isDrawingActive], 1
+  jne @F
+  cmp [wmsg], WM_LBUTTONUP 
+  je .MouseClickHandle
+  cmp [wmsg], WM_MOUSEMOVE  
   jne @F 
 
+  test [wparam], MK_LBUTTON
+  jnz .MouseClickHandle ; left button is pressed
+
+  @@:
+  invoke DefWindowProc, [hwnd], [wmsg], [wparam], [lparam]
+  jmp .full_skip
+  
+  .checkInpMode:
   cmp [ConsoleInputMode], 1
   jne .keyDown
   mov eax, [lparam]
   shr eax, 31 
   jc .full_skip
-  
-  jmp .keyDown
 
-  @@:
-  invoke DefWindowProc, [hwnd], [wmsg], [wparam], [lparam]
-  jmp .full_skip
+
 
   .keyDown:
     cmp [wparam], VK_TAB
@@ -602,6 +606,9 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     .handleWindowInp:
     cmp [wparam], VK_SPACE
     jne .coninueAnalisis
+
+    cmp [isDrawingActive], 1 
+    je .finish
     cmp [PauseGame], 0
     je @F 
     mov [PauseGame], 0
@@ -615,29 +622,29 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     mov [PutOnPauseNextTact], 1
     mov [PauseGame], 0
 
-    @@:
-    ; 's' key - save field 
-    cmp [wparam], 0x53
-    jne @F
-    stdcall saveField, fname1
+    ; @@:
+    ; ; 's' key - save field 
+    ; cmp [wparam], 0x53
+    ; jne @F
+    ; stdcall saveField, fname1
 
-    @@:
-    ; 'd' key - save configuration
-    cmp [wparam], 0x44
-    jne @F
-    stdcall saveSettings, fname2
+    ; @@:
+    ; ; 'd' key - save configuration
+    ; cmp [wparam], 0x44
+    ; jne @F
+    ; stdcall saveSettings, fname2
 
-    @@:
-    ; 'l' key - load configuration
-    cmp [wparam], 0x4C
-    jne @F
-    stdcall loadSettings, fname2
+    ; @@:
+    ; ; 'l' key - load configuration
+    ; cmp [wparam], 0x4C
+    ; jne @F
+    ; stdcall loadSettings, fname2
 
-    @@:
-    ; 'k' key - load field
-    cmp [wparam], 0x4B
-    jne .finish 
-    stdcall loadField, fname1
+    ; @@:
+    ; ; 'k' key - load field
+    ; cmp [wparam], 0x4B
+    ; jne .finish 
+    ; stdcall loadField, fname1
     
     jmp .finish
 
@@ -727,9 +734,81 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   jmp .finish
 
   .wmdestroy:
-  invoke PostQuitMessage, 0
-  xor eax, eax
-  invoke  ExitProcess, 0
+    invoke PostQuitMessage, 0
+    xor eax, eax
+    invoke  ExitProcess, 0
+  
+  .MouseClickHandle:
+    local fieldX dd ?
+    local fieldY dd ?
+    local cellX dd ?
+    local cellY dd ?
+
+    ; getting Y, converting to field coords
+    mov eax, [lparam]
+    shr eax, 16
+    sub eax, [YFieldOffset]
+    sub eax, [FieldYInOffset]
+    cmp eax, 0
+    jl .finish 
+    cmp eax, [FieldSizePx]
+    jae .finish
+
+    add eax, [YFieldOffset]
+    add eax, [YFieldOffset]
+    ; inversing y-axis direction
+    mov ebx, [FieldZoneHeight]
+    dec ebx 
+    sub ebx, eax
+    mov [fieldY], ebx
+
+    ; doing same for x coords
+    mov eax, [lparam]
+    and eax, 0x0000FFFF
+    sub eax, [XFieldOffset]
+    sub eax, [FieldXInOffset]
+    cmp eax, 0
+    jl .finish 
+    cmp eax, [FieldSizePx]
+    jae .finish
+
+    mov [fieldX], eax
+
+    xor edx, edx 
+    mov eax, [fieldX]
+    div [CellSizePX]
+    mov [cellX], eax
+
+    mov eax, [fieldY]
+    xor edx, edx 
+    div [CellSizePX]
+    mov [cellY], eax
+
+    stdcall clearFieldCell, [cellX], [cellY]
+    cmp [isDrawingAgent], 1
+    jne @F 
+    
+      stdcall AddAgent, [cellX], [cellY]
+        stdcall PrintStats
+        invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+
+
+    jmp .full_skip 
+      stdcall AddFood, [cellX], [cellY]
+    @@:
+    cmp [isDrawingClear], 1 
+    jne @F
+      stdcall clearCellColor, [cellX], [cellY]
+      stdcall PrintStats
+      invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+      jmp .full_skip
+    @@:
+    stdcall AddFood, [cellX], [cellY]
+    stdcall PrintStats
+    invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+
+
+  jmp .full_skip
   .finish:
   
     cmp [ConsoleInputMode], 1
