@@ -84,7 +84,12 @@ proc fillField
       sub eax, ecx
       mov dword[edi + AGENT_COORDS_OFFSET], eax ; curr coords
       mov eax, [AgentInitEnergy]
+      shr eax, 1
+      stdcall RandInt, eax
       mov word[edi + AGENT_ENERGY_OFFSET], ax
+      mov eax, [AgentInitEnergy]
+      shr eax, 1
+      add word[edi + AGENT_ENERGY_OFFSET], ax
       mov word[edi + AGENT_CURR_INSTR_OFFSET], 0
 
       mov eax, AGENT_MAX_INSTRUCTIONS_N 
@@ -206,7 +211,13 @@ proc AddAgent uses edi esi ebx, X, Y
 
   mov dword[edi + AGENT_COORDS_OFFSET], ebx ; curr coords
   mov eax, [AgentInitEnergy]
+  shr eax, 1
+  stdcall RandInt, eax
   mov word[edi + AGENT_ENERGY_OFFSET], ax
+  mov eax, [AgentInitEnergy]
+  shr eax, 1
+  add word[edi + AGENT_ENERGY_OFFSET], ax
+  movzx eax, word[edi + AGENT_ENERGY_OFFSET]
   stdcall CalcAgentColor, eax 
   stdcall bufUpdateCellColor, dword[edi + AGENT_COORDS_OFFSET], eax
   mov word[edi + AGENT_CURR_INSTR_OFFSET], 0

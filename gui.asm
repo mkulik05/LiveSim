@@ -615,13 +615,15 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     jmp .finish
     @@:
     mov [PauseGame], 1
+    jmp .full_skip
     .coninueAnalisis:
     ; 'n' key
     cmp [wparam], 0x4E
-    jne @F
+    jne .finish
     mov [PutOnPauseNextTact], 1
     mov [PauseGame], 0
 
+    jmp .finish
     ; @@:
     ; ; 's' key - save field 
     ; cmp [wparam], 0x53
@@ -646,7 +648,6 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     ; jne .finish 
     ; stdcall loadField, fname1
     
-    jmp .finish
 
     .handleConsoleInp:
 
