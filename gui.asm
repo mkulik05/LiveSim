@@ -53,7 +53,7 @@ proc drawField uses ecx edi ebx edx ebp esi
   cmp ecx, 0 
   ja .GoThoughFieldCells
 
-  invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+  invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
   ret 
 endp
 
@@ -70,9 +70,9 @@ proc PrintStats
   mov [rect.top], TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], numStr, -1, eax, DT_LEFT
 
   stdcall IntToStr, [AgentsSize], numStr, 0 ; Assuming tactNStrStartI is the starting index for the number in tactNStr
   mov [rect.left], TEXT_MARGIN_LEFT
@@ -84,9 +84,9 @@ proc PrintStats
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], numStr, -1, eax, DT_LEFT
 
   stdcall IntToStr, [FoodSize], numStr, 0 ; Assuming tactNStrStartI is the starting index for the number in tactNStr
   mov [rect.left], TEXT_MARGIN_LEFT
@@ -98,9 +98,9 @@ proc PrintStats
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2 + TEXT_FONT_SIZE * 2 
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], numStr, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], numStr, -1, eax, DT_LEFT
 
   ret 
 endp
@@ -175,13 +175,13 @@ proc calcLeftTextOffset
   local rect RECT
   ; calculating offsets 
   lea eax, [sizee]
-  invoke GetTextExtentPoint32, [hDC], tactNStr, tactNStrLen, eax
+  invoke GetTextExtentPoint32, [hBufDC], tactNStr, tactNStrLen, eax
 
   mov eax, [sizee.cx]
   mov [maxTextWidth], eax
 
   lea eax, [sizee]
-  invoke GetTextExtentPoint32, [hDC], agentsNStr, agentsNStrLen, eax 
+  invoke GetTextExtentPoint32, [hBufDC], agentsNStr, agentsNStrLen, eax 
 
   mov eax, [sizee.cx]
   cmp eax, [maxTextWidth]
@@ -190,7 +190,7 @@ proc calcLeftTextOffset
   @@:
 
   lea eax, [sizee]
-  invoke GetTextExtentPoint32, [hDC], foodNStr, foodNStrLen, eax 
+  invoke GetTextExtentPoint32, [hBufDC], foodNStr, foodNStrLen, eax 
 
   mov eax, [sizee.cx]
   cmp eax, [maxTextWidth]
@@ -205,23 +205,23 @@ proc calcLeftTextOffset
   mov [rect.top], TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], tactNStr, tactNStrLen, eax, DT_LEFT
+  invoke DrawText, [hBufDC], tactNStr, tactNStrLen, eax, DT_LEFT
 
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], agentsNStr, agentsNStrLen, eax, DT_LEFT
+  invoke DrawText, [hBufDC], agentsNStr, agentsNStrLen, eax, DT_LEFT
 
   mov [rect.top], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2
   mov [rect.bottom], TEXT_FONT_SIZE * 2 + TEXT_MARGIN_TOP + TEXT_FONT_SIZE * 2 + TEXT_FONT_SIZE * 2 
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect]
-  invoke DrawText, [hDC], foodNStr, foodNStrLen, eax, DT_LEFT
+  invoke DrawText, [hBufDC], foodNStr, foodNStrLen, eax, DT_LEFT
   ret 
 endp 
 
@@ -335,7 +335,7 @@ proc drawBkg
   lea eax, [rect]
   invoke GetClientRect, [hwnd], eax
   lea eax, [rect]
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
 
   ret
 endp
@@ -373,7 +373,12 @@ proc GUIBasicInit
   
   mov [hwnd], eax
   invoke GetDC, [hwnd]
-  mov [hDC], eax
+  mov [hMainDc], eax
+  invoke CreateCompatibleDC, [hMainDc] 
+  mov [hBufDC], eax 
+  invoke CreateCompatibleBitmap, [hMainDc], [ScreenWidth], [ScreenHeight]
+  invoke SelectObject, [hBufDC], eax
+
   mov [bmi.biSize], sizeof.BITMAPINFOHEADER
   mov eax, [FieldZoneWidth]
   mov [bmi.biWidth], eax
@@ -386,7 +391,7 @@ proc GUIBasicInit
   ; setup font size
   mov [lf.lfHeight], TEXT_FONT_SIZE
   invoke CreateFontIndirect, lf
-  invoke SelectObject, [hDC], eax
+  invoke SelectObject, [hBufDC], eax
 
   ; create brush for text bkg (to clear old text)
   invoke CreateSolidBrush, GAME_BKG_COLOR
@@ -452,9 +457,9 @@ proc WriteMsg uses edi esi ebx, Msg
     add [rect.bottom], TEXT_FONT_SIZE * 2
 
     lea eax, [rect] 
-    invoke FillRect, [hDC], eax, [bkgBrush]
+    invoke FillRect, [hBufDC], eax, [bkgBrush]
     lea eax, [rect] 
-    invoke DrawText, [hDC], [Msg], -1, eax, DT_LEFT
+    invoke DrawText, [hBufDC], [Msg], -1, eax, DT_LEFT
 
     jmp .stop
 
@@ -475,9 +480,9 @@ proc WriteMsg uses edi esi ebx, Msg
       mov edx, [ConsoleBufSaves + ebx * 4]
       mov [ConsoleBufSaves + (ebx - 1) * 4], edx
       lea eax, [rect] 
-      invoke FillRect, [hDC], eax, [bkgBrush]
+      invoke FillRect, [hBufDC], eax, [bkgBrush]
       lea eax, [rect] 
-      invoke DrawText, [hDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+      invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
       add [rect.top], TEXT_FONT_SIZE * 2
       add [rect.bottom], TEXT_FONT_SIZE * 2
       pop ecx
@@ -495,10 +500,11 @@ proc WriteMsg uses edi esi ebx, Msg
     rep movsb
 
     lea eax, [rect] 
-    invoke FillRect, [hDC], eax, [bkgBrush]
+    invoke FillRect, [hBufDC], eax, [bkgBrush]
     lea eax, [rect] 
-    invoke DrawText, [hDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+    invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
 
+    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
     .stop:
 
   ret 
@@ -519,9 +525,10 @@ proc DrawCursor uses edi eax
   sub eax, TEXT_FONT_SIZE * 2
   mov [rect.top], eax
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], ConsoleActiveText, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], ConsoleActiveText, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -545,9 +552,10 @@ proc RedrawCommand uses edi eax
   sub eax, TEXT_FONT_SIZE * 2
   mov [rect.top], eax
   lea eax, [rect] 
-  invoke FillRect, [hDC], eax, [bkgBrush]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
-  invoke DrawText, [hDC], ConsoleInpBuf, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], ConsoleInpBuf, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -791,8 +799,8 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     
       stdcall AddAgent, [cellX], [cellY]
         stdcall PrintStats
-        invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-
+        invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+        invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
 
     jmp .full_skip 
       stdcall AddFood, [cellX], [cellY]
@@ -801,13 +809,14 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     jne @F
       stdcall clearCellColor, [cellX], [cellY]
       stdcall PrintStats
-      invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+      invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+      invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
       jmp .full_skip
     @@:
     stdcall AddFood, [cellX], [cellY]
     stdcall PrintStats
-    invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-
+    invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
 
   jmp .full_skip
   .finish:

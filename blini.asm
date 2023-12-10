@@ -153,7 +153,8 @@ section '.data' data readable writeable
   _class TCHAR 'FASMWIN32', 0
   _error TCHAR 'Startup failed.', 0
   wc WNDCLASS 0, WindowProc, 0, 0, NULL, NULL, NULL, COLOR_BTNFACE + 1, NULL, _class
-  hDC dd 0
+  hBufDC dd 0
+  hMainDc dd 0
   hwnd dd 0
   bmi BITMAPINFOHEADER
   msg MSG
@@ -288,12 +289,13 @@ proc ShowGeneratingFieldMsg
   push [lf.lfHeight]
   mov [lf.lfHeight], TEXT_FONT_SIZE * 2
   invoke CreateFontIndirect, lf
-  invoke SelectObject, [hDC], eax
+  invoke SelectObject, [hBufDC], eax
   lea eax, [rect]
-  invoke DrawText, [hDC], genFieldMsg, -1, eax, DT_CENTER
+  invoke DrawText, [hBufDC], genFieldMsg, -1, eax, DT_CENTER
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
-  invoke SelectObject, [hDC], eax
+  invoke SelectObject, [hBufDC], eax
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -312,12 +314,13 @@ proc GameOverProc
   push [lf.lfHeight]
   mov [lf.lfHeight], TEXT_FONT_SIZE * 2
   invoke CreateFontIndirect, lf
-  invoke SelectObject, [hDC], eax
+  invoke SelectObject, [hBufDC], eax
   lea eax, [rect]
-  invoke DrawText, [hDC], deathMsg, -1, eax, DT_CENTER
+  invoke DrawText, [hBufDC], deathMsg, -1, eax, DT_CENTER
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
-  invoke SelectObject, [hDC], eax
+  invoke SelectObject, [hBufDC], eax
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
   ; game can be reseted using console
   mov [PauseGame], 1
   .Paused:
@@ -333,7 +336,8 @@ proc startGame
 
   gameLoop:
     stdcall PrintStats  
-    invoke SetDIBitsToDevice, [hDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+    invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
     stdcall ProcessWindowMsgs
 
     cmp [PutOnPauseNextTact], 1
@@ -541,7 +545,10 @@ section '.idata' import data readable writeable
          SelectObject, 'SelectObject', \
          CreateFontIndirect, 'CreateFontIndirectA', \
          SetDIBitsToDevice, 'SetDIBitsToDevice', \
-         GetTextExtentPoint32, 'GetTextExtentPoint32A'
+         GetTextExtentPoint32, 'GetTextExtentPoint32A', \
+         BitBlt, 'BitBlt', \
+         CreateCompatibleDC, 'CreateCompatibleDC', \
+         CreateCompatibleBitmap, 'CreateCompatibleBitmap'
   include 'field.asm'
   include 'agents.asm'
   include 'food.asm'

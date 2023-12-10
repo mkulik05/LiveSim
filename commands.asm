@@ -244,6 +244,7 @@ proc CommandStopDraw, n
 endp
 
 proc CommandClearDraw, n 
+  mov [PauseGame], 1
   mov [isDrawingAgent], 0
   mov [isDrawingActive], 1
   mov [isDrawingClear], 1
