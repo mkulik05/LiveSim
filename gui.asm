@@ -363,7 +363,7 @@ proc GUIBasicInit
   mov [wc.hInstance], eax
   invoke LoadIcon, 0, IDI_APPLICATION
   mov [wc.hIcon], eax
-  invoke LoadCursor, 0, IDC_ARROW
+  invoke LoadCursor, 0, IDC_CROSS
   mov [wc.hCursor], eax
   invoke RegisterClass, wc
   test eax, eax
@@ -396,6 +396,13 @@ proc GUIBasicInit
   ; create brush for text bkg (to clear old text)
   invoke CreateSolidBrush, GAME_BKG_COLOR
   mov [bkgBrush], eax
+
+  ; ; cursor is like semaphore - twice hidden, twice should be shown
+  cmp [isCursorShown], 1
+  jne @F
+  invoke ShowCursor, FALSE
+  mov [isCursorShown], 0
+  @@:
 
   jmp @F
   error:
@@ -528,7 +535,7 @@ proc DrawCursor uses edi eax
   invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
   invoke DrawText, [hBufDC], ConsoleActiveText, -1, eax, DT_LEFT
-  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -555,7 +562,7 @@ proc RedrawCommand uses edi eax
   invoke FillRect, [hBufDC], eax, [bkgBrush]
   lea eax, [rect] 
   invoke DrawText, [hBufDC], ConsoleInpBuf, -1, eax, DT_LEFT
-  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -569,6 +576,8 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
   jne @F
   cmp [wmsg], WM_LBUTTONUP 
   je .MouseClickHandle
+  ; cmp [wmsg], WM_SETCURSOR
+  ; je .wmSetCursor
   cmp [wmsg], WM_MOUSEMOVE  
   jne @F 
 
@@ -800,7 +809,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
       stdcall AddAgent, [cellX], [cellY]
         stdcall PrintStats
         invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-        invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+        invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
 
     jmp .full_skip 
       stdcall AddFood, [cellX], [cellY]
@@ -810,15 +819,21 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
       stdcall clearCellColor, [cellX], [cellY]
       stdcall PrintStats
       invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-      invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+      invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
       jmp .full_skip
     @@:
     stdcall AddFood, [cellX], [cellY]
     stdcall PrintStats
     invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
 
   jmp .full_skip
+
+  ; .wmSetCursor:
+  ;   invoke LoadCursor, 0, CursorType
+  ;   invoke SetCursor, eax
+  ;   jmp .full_skip
+
   .finish:
   
     cmp [ConsoleInputMode], 1

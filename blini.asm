@@ -66,6 +66,8 @@ section '.data' data readable writeable
   SpawnedFoodMaxAmount dd 50
 
   ; GUI stuff
+  CursorType dd IDC_CROSS
+  isCursorShown dd 1
   EMPTY_COLOR = 0x00000000
   ScreenBufAddr dd 0
   CellSizePX dd 0
@@ -295,7 +297,7 @@ proc ShowGeneratingFieldMsg
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax
-  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   ret 
 endp
 
@@ -320,7 +322,7 @@ proc GameOverProc
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax
-  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   ; game can be reseted using console
   mov [PauseGame], 1
   .Paused:
@@ -337,7 +339,7 @@ proc startGame
   gameLoop:
     stdcall PrintStats  
     invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
-    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC\], 0, 0, SRCCOPY
+    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
     stdcall ProcessWindowMsgs
 
     cmp [PutOnPauseNextTact], 1
@@ -531,6 +533,8 @@ section '.idata' import data readable writeable
          GetSystemMetrics, 'GetSystemMetrics', \
          LoadIcon, 'LoadIconA', \
          LoadCursor, 'LoadCursorA', \
+         SetCursor, 'SetCursor', \
+         ShowCursor, 'ShowCursor', \
          RegisterClass, 'RegisterClassA', \
          CreateWindowEx, 'CreateWindowExA', \
          GetDC, 'GetDC', \

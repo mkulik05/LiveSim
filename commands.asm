@@ -222,14 +222,24 @@ proc CommandChangeFoodSpawnAmount, num
 endp
 
 proc CommandAgentDraw, n
+  cmp [isCursorShown], 0
+  jne @F
+  invoke ShowCursor, TRUE
+  mov [isCursorShown], 1
+  @@:
   mov [PauseGame], 1
   mov [isDrawingActive], 1
   mov [isDrawingAgent], 1
   mov [isDrawingClear], 0
-  ret 
+  ret
 endp
 
 proc CommandFoodDraw, n 
+  cmp [isCursorShown], 0
+  jne @F
+  invoke ShowCursor, TRUE
+  mov [isCursorShown], 1
+  @@:
   mov [PauseGame], 1
   mov [isDrawingActive], 1
   mov [isDrawingAgent], 0
@@ -237,13 +247,23 @@ proc CommandFoodDraw, n
   ret 
 endp
 
-proc CommandStopDraw, n 
+proc CommandStopDraw, n
+  cmp [isCursorShown], 1
+  jne @F
+  invoke ShowCursor, FALSE
+  mov [isCursorShown], 0
+  @@:
   mov [isDrawingActive], 0
   mov [isDrawingClear], 0
   ret 
 endp
 
 proc CommandClearDraw, n 
+  cmp [isCursorShown], 0
+  jne @F
+  invoke ShowCursor, TRUE
+  mov [isCursorShown], 1
+  @@:
   mov [PauseGame], 1
   mov [isDrawingAgent], 0
   mov [isDrawingActive], 1
