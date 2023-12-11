@@ -161,6 +161,7 @@ section '.data' data readable writeable
   bmi BITMAPINFOHEADER
   msg MSG
   TEXT_FONT_SIZE = 50
+  TEXT_CHAT_FONT_SIZE = 40
   TEXT_MARGIN_LEFT = 20
   TEXT_MARGIN_TOP = 20
   GAME_BKG_COLOR = 00FFFFFFh

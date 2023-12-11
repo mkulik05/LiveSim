@@ -397,7 +397,7 @@ proc GUIBasicInit
   invoke CreateSolidBrush, GAME_BKG_COLOR
   mov [bkgBrush], eax
 
-  ; ; cursor is like semaphore - twice hidden, twice should be shown
+  ; cursor is like semaphore - twice hidden, twice should be shown
   cmp [isCursorShown], 1
   jne @F
   invoke ShowCursor, FALSE
@@ -433,6 +433,10 @@ endp
 proc WriteMsg uses edi esi ebx, Msg
   local rect RECT
 
+  push [lf.lfHeight]
+  mov [lf.lfHeight], TEXT_CHAT_FONT_SIZE
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
   ; initing them in the start, cause they are constant
   mov eax, [FieldXInOffset]
   add eax, [FieldZoneWidth] 
@@ -512,8 +516,11 @@ proc WriteMsg uses edi esi ebx, Msg
     invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
 
     invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
-    .stop:
+  .stop:
 
+  pop [lf.lfHeight]
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
   ret 
 endp
 
