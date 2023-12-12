@@ -175,8 +175,7 @@ proc ProcessCommand uses edi esi ecx edx
   shl ebx, 2
   add esi, ebx
 
-  stdcall dword[esi]
-
+  stdcall dword[esi], eax
 
   jmp .StopProcessingOk
 
@@ -218,8 +217,8 @@ proc GetCommandFromHistory
   ret
 endp
 
-proc CommandChangeFieldSize, num
-  mov eax, [num]
+proc CommandChangeFieldSize, n
+  mov eax, [n]
   mov [FieldSize], eax
 
   invoke HeapFree, [HeapHandle], 0, [FieldAddr]
@@ -233,7 +232,7 @@ proc CommandChangeFieldSize, num
   ret 
 endp
 
-proc CommandReset, num
+proc CommandReset, n
   mov [TotalTacts], 0
   mov [ConsoleCharsN], 0
   mov [AgentsSize], 0
@@ -244,15 +243,15 @@ proc CommandReset, num
 endp
 
 
-; param is passed through eax
-proc CommandChangeFoodSpawnAmount
+proc CommandChangeFoodSpawnAmount, n
+  mov eax, [n]
   mov [NextFoodSpawnNMax], eax
   stdcall RandInt, eax 
   mov [NextFoodSpawnN], eax
   ret 
 endp
 
-proc CommandAgentDraw
+proc CommandAgentDraw, n
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE
@@ -265,7 +264,7 @@ proc CommandAgentDraw
   ret
 endp
 
-proc CommandFoodDraw
+proc CommandFoodDraw, n
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE
@@ -278,7 +277,7 @@ proc CommandFoodDraw
   ret 
 endp
 
-proc CommandStopDraw
+proc CommandStopDraw, n
   cmp [isCursorShown], 1
   jne @F
   invoke ShowCursor, FALSE
@@ -289,7 +288,7 @@ proc CommandStopDraw
   ret 
 endp
 
-proc CommandClearDraw
+proc CommandClearDraw, n
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE

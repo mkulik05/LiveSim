@@ -440,7 +440,7 @@ proc WriteMsg uses edi esi ebx, Msg
   ; initing them in the start, cause they are constant
   mov eax, [FieldXInOffset]
   add eax, [FieldZoneWidth] 
-  add [rect.left], eax
+  mov [rect.left], eax
   add [rect.left], TEXT_MARGIN_LEFT / 2
   mov eax, [ScreenWidth]
   mov [rect.right], eax
