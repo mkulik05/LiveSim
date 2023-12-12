@@ -175,18 +175,19 @@ proc ProcessCommand uses edi esi ecx edx
   shl ebx, 2
   add esi, ebx
 
-  stdcall dword[esi], eax
+  stdcall dword[esi]
+
 
   jmp .StopProcessingOk
 
   .StopProcessingErr:
-    invoke MessageBox, 0, ConsoleErrorMsg, ConsoleErrorMsg, MB_OK
-    stdcall WriteMsg, ConsoleErrorMsg
+    mov [IsCommandValid], 0
+    jmp @F
   .StopProcessingOk:
+    mov [IsCommandValid], 1  
+  @@:
   ret 
 endp
-
-
 
 proc CommandChangeFieldSize, num
   mov eax, [num]
@@ -213,15 +214,16 @@ proc CommandReset, num
   ret 
 endp
 
-proc CommandChangeFoodSpawnAmount, num 
-  mov eax, [num]
+
+; param is passed through eax
+proc CommandChangeFoodSpawnAmount
   mov [NextFoodSpawnNMax], eax
   stdcall RandInt, eax 
   mov [NextFoodSpawnN], eax
   ret 
 endp
 
-proc CommandAgentDraw, n
+proc CommandAgentDraw
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE
@@ -234,7 +236,7 @@ proc CommandAgentDraw, n
   ret
 endp
 
-proc CommandFoodDraw, n 
+proc CommandFoodDraw
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE
@@ -247,7 +249,7 @@ proc CommandFoodDraw, n
   ret 
 endp
 
-proc CommandStopDraw, n
+proc CommandStopDraw
   cmp [isCursorShown], 1
   jne @F
   invoke ShowCursor, FALSE
@@ -258,7 +260,7 @@ proc CommandStopDraw, n
   ret 
 endp
 
-proc CommandClearDraw, n 
+proc CommandClearDraw
   cmp [isCursorShown], 0
   jne @F
   invoke ShowCursor, TRUE

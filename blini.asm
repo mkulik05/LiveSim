@@ -118,10 +118,14 @@ section '.data' data readable writeable
   COMMAND_ACTION_LEN = 3
   CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw
   COMMANDS_ACTION_N = 7
+  IsCommandValid dd 0
+  INVALID_COMMAND_COLOR = 0x000000BB
 
   ConsoleBufSavesN dd 10
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
+  ConsoleBufIsCorrect dd 10 dup(0)
   ConsoleBufCurrSave dd -1
+  ConsolyHistoryCurrI dd -1
   ConsoleBufSave1 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave2 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave3 db (ConsoleBufSize + 1) dup ?
@@ -525,7 +529,8 @@ section '.idata' import data readable writeable
          CreateFile, 'CreateFileA', \
          WriteFile, 'WriteFile', \
          ReadFile, 'ReadFile', \
-         CloseHandle, 'CloseHandle'
+         CloseHandle, 'CloseHandle', \
+         GetLastError, 'GetLastError'
 
   import user32,\
          GetClientRect, 'GetClientRect', \
@@ -553,7 +558,8 @@ section '.idata' import data readable writeable
          GetTextExtentPoint32, 'GetTextExtentPoint32A', \
          BitBlt, 'BitBlt', \
          CreateCompatibleDC, 'CreateCompatibleDC', \
-         CreateCompatibleBitmap, 'CreateCompatibleBitmap'
+         CreateCompatibleBitmap, 'CreateCompatibleBitmap', \
+         SetTextColor, 'SetTextColor'
   include 'field.asm'
   include 'agents.asm'
   include 'food.asm'

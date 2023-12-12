@@ -450,29 +450,42 @@ proc WriteMsg uses edi esi ebx, Msg
   cmp dword[ConsoleBufCurrSave], eax
   jae .needRewrite
 
-    ; saving text to corresponding slot (so history will work (in future:)))
-    mov ecx, ConsoleBufSize + 1
-    mov ebx, [ConsoleBufCurrSave]
-    mov edi, [ConsoleBufSaves + ebx * 4]
-    mov esi, [Msg]
-    rep movsb
+  ; saving text to corresponding slot (so history will work (in future:)))
+  mov ecx, ConsoleBufSize + 1
+  mov ebx, [ConsoleBufCurrSave]
+  mov edi, [ConsoleBufSaves + ebx * 4]
+  mov esi, [Msg]
+  rep movsb
 
-    mov eax, TEXT_FONT_SIZE * 2
-    mul [ConsoleBufCurrSave]
-    cmp [ConsoleBufCurrSave], 0
-    jne @F 
-      mov eax, TEXT_MARGIN_TOP
-    @@:
-    mov [rect.top], eax
-    mov [rect.bottom], eax
-    add [rect.bottom], TEXT_FONT_SIZE * 2
+  mov eax, TEXT_FONT_SIZE * 2
+  mul [ConsoleBufCurrSave]
+  cmp [ConsoleBufCurrSave], 0
+  jne @F 
+    mov eax, TEXT_MARGIN_TOP
+  @@:
+  mov [rect.top], eax
+  mov [rect.bottom], eax
+  add [rect.bottom], TEXT_FONT_SIZE * 2
 
-    lea eax, [rect] 
-    invoke FillRect, [hBufDC], eax, [bkgBrush]
+  lea eax, [rect] 
+  invoke FillRect, [hBufDC], eax, [bkgBrush] 
+  
+  mov esi, [ConsoleBufCurrSave] 
+  mov eax, [IsCommandValid]
+  mov [ConsoleBufIsCorrect + esi * 4], eax
+  cmp [ConsoleBufIsCorrect + esi * 4], 1
+  je @F
+
+    invoke SetTextColor, [hBufDC], INVALID_COMMAND_COLOR
     lea eax, [rect] 
     invoke DrawText, [hBufDC], [Msg], -1, eax, DT_LEFT
-
+    invoke SetTextColor, [hBufDC], 0
     jmp .stop
+  @@: 
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], [Msg], -1, eax, DT_LEFT
+
+  jmp .stop
 
   .needRewrite:    
     ; backing up first cell (moving it into last one)
@@ -490,17 +503,34 @@ proc WriteMsg uses edi esi ebx, Msg
       push ecx
       mov edx, [ConsoleBufSaves + ebx * 4]
       mov [ConsoleBufSaves + (ebx - 1) * 4], edx
+      mov edx, [ConsoleBufIsCorrect + ebx * 4]
+      mov [ConsoleBufIsCorrect + (ebx - 1) * 4], edx
       lea eax, [rect] 
       invoke FillRect, [hBufDC], eax, [bkgBrush]
+      
+      cmp [ConsoleBufIsCorrect + (ebx - 1) * 4], 1
+      je @F
+        invoke SetTextColor, [hBufDC], INVALID_COMMAND_COLOR
+        lea eax, [rect] 
+        invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+        invoke SetTextColor, [hBufDC], 0
+        jmp .continue
+      @@: 
       lea eax, [rect] 
       invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+      .continue:
+
       add [rect.top], TEXT_FONT_SIZE * 2
       add [rect.bottom], TEXT_FONT_SIZE * 2
       pop ecx
       inc ebx
-    loop .shiftText
+    dec ecx
+    cmp ecx, 0
+    jne  .shiftText
 
     mov ebx, [ConsoleBufSavesN]
+    mov eax, [IsCommandValid]
+    mov [ConsoleBufIsCorrect + (ebx - 1) * 4], eax
     pop edx 
     mov [ConsoleBufSaves + (ebx - 1) * 4], edx
 
@@ -512,12 +542,20 @@ proc WriteMsg uses edi esi ebx, Msg
 
     lea eax, [rect] 
     invoke FillRect, [hBufDC], eax, [bkgBrush]
+
+    cmp [ConsoleBufIsCorrect + (ebx - 1) * 4], 1
+    je @F
+
+      invoke SetTextColor, [hBufDC], INVALID_COMMAND_COLOR
+      lea eax, [rect] 
+      invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
+      invoke SetTextColor, [hBufDC], 0
+      jmp .stop
+    @@: 
     lea eax, [rect] 
     invoke DrawText, [hBufDC], [ConsoleBufSaves + (ebx - 1) * 4], -1, eax, DT_LEFT
-
-    invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   .stop:
-
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax
@@ -685,8 +723,8 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     mov edi, ConsoleInpBuf 
     add edi, [ConsoleCharsN] 
     mov byte[edi], 0
-    stdcall WriteMsg, ConsoleInpBuf
     stdcall ProcessCommand
+    stdcall WriteMsg, ConsoleInpBuf
     mov [ConsoleCharsN], 0
 
     stdcall RedrawCommand
@@ -836,10 +874,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
 
   jmp .full_skip
 
-  ; .wmSetCursor:
-  ;   invoke LoadCursor, 0, CursorType
-  ;   invoke SetCursor, eax
-  ;   jmp .full_skip
+
 
   .finish:
   
