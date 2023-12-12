@@ -125,7 +125,7 @@ section '.data' data readable writeable
   ConsoleBufSaves dd ConsoleBufSave1, ConsoleBufSave2, ConsoleBufSave3, ConsoleBufSave4, ConsoleBufSave5, ConsoleBufSave6, ConsoleBufSave7, ConsoleBufSave8, ConsoleBufSave9, ConsoleBufSave10
   ConsoleBufIsCorrect dd 10 dup(0)
   ConsoleBufCurrSave dd -1
-  ConsolyHistoryCurrI dd -1
+  ConsoleHistoryCurrI dd -1
   ConsoleBufSave1 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave2 db (ConsoleBufSize + 1) dup ?
   ConsoleBufSave3 db (ConsoleBufSize + 1) dup ?
@@ -144,6 +144,7 @@ section '.data' data readable writeable
   ConsoleBufSize = 10
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
   ConsoleErrorMsg db 'Error', 0
+  sdsdsds db 0, 0, 0
   ConsoleCharsN dd 0
   ConsoleActiveText db '|', 0
 

@@ -189,6 +189,35 @@ proc ProcessCommand uses edi esi ecx edx
   ret 
 endp
 
+proc GetCommandFromHistory
+
+  ; copying command from history  into console buffer
+  cmp [ConsoleHistoryCurrI], -1
+  jg @F 
+    xor ecx, ecx
+    jmp .stop
+  @@:
+  mov esi, [ConsoleBufCurrSave]
+  sub esi, [ConsoleHistoryCurrI]
+  mov esi, [ConsoleBufSaves + esi * 4]
+  mov edi, ConsoleInpBuf
+  mov ecx, ConsoleBufSize + 1
+  rep movsb
+
+  xor ecx, ecx
+  mov edi, ConsoleInpBuf 
+  .GetLen:
+    cmp byte[edi], 0
+    je .stop
+    inc edi 
+    inc ecx 
+  jmp .GetLen
+
+  .stop:
+    mov [ConsoleCharsN], ecx
+  ret
+endp
+
 proc CommandChangeFieldSize, num
   mov eax, [num]
   mov [FieldSize], eax

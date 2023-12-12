@@ -608,6 +608,7 @@ proc RedrawCommand uses edi eax
   lea eax, [rect] 
   invoke DrawText, [hBufDC], ConsoleInpBuf, -1, eax, DT_LEFT
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  .stop:
   ret 
 endp
 
@@ -650,6 +651,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     jne .switchTO1
     mov [ConsoleInputMode], 0
     mov [ConsoleCharsN], 0
+    mov [ConsoleHistoryCurrI], -1 
     stdcall RedrawCommand
     jmp .finish
     .switchTO1:
@@ -713,9 +715,39 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
 
     .handleConsoleInp:
 
+    cmp [wparam], VK_UP
+    jne @F 
+      ; skip if reached up limit
+      mov eax, [ConsoleBufCurrSave]
+      cmp [ConsoleHistoryCurrI], eax 
+      jge .full_skip 
+      inc [ConsoleHistoryCurrI]
+      stdcall GetCommandFromHistory
+      stdcall RedrawCommand
+      jmp .full_skip
+    @@:
+
+    cmp [wparam], VK_DOWN
+    jne @F 
+
+      mov eax, [ConsoleBufCurrSave]
+      cmp [ConsoleHistoryCurrI], -1 
+      jle .full_skip 
+      dec [ConsoleHistoryCurrI]
+      stdcall GetCommandFromHistory
+      stdcall RedrawCommand
+      cmp [ConsoleCharsN], 0
+      ja .full_skip
+      stdcall DrawCursor
+      invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+      jmp .full_skip
+  @@:
+
+    @@:
     ; enter
     cmp [wparam], VK_RETURN
     jne @F
+    mov [ConsoleHistoryCurrI], -1
     cmp [ConsoleCharsN], 0
     mov [ConsoleInputMode], 0
     je  .finish
@@ -734,6 +766,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     @@:
     cmp [wparam], VK_BACK
     jne @F
+    mov [ConsoleHistoryCurrI], -1
     cmp [ConsoleCharsN], 0
     jg .GreaterThenZero
     inc [ConsoleCharsN] 
@@ -768,6 +801,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     cmp [wparam], 0x5A
     ja .notALetter 
 
+    mov [ConsoleHistoryCurrI], -1
     mov eax, [wparam]
     sub eax, 0x41
     add eax, 'a'
@@ -785,6 +819,7 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     cmp [wparam], 0x39
     ja .notADigit
 
+    mov [ConsoleHistoryCurrI], -1
     mov eax, [wparam]
     sub eax, 0x30
     add eax, '0'
