@@ -57,6 +57,56 @@ proc drawField uses ecx edi ebx edx ebp esi
   ret 
 endp
 
+proc ShowHints
+  local rect RECT
+
+  push [lf.lfHeight]
+  mov [lf.lfHeight], HINT_FONT_SIZE
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
+
+  mov [rect.left], TEXT_MARGIN_LEFT
+  mov eax, [FieldXInOffset]
+  mov [rect.right], eax
+  mov eax, [ScreenHeight]
+  sub eax, TEXT_MARGIN_TOP
+  mov [rect.bottom], eax
+  sub eax, HINT_FONT_SIZE * 2
+  mov [rect.top], eax
+
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], Hint4, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  invoke Sleep, 400
+
+  sub [rect.bottom], HINT_FONT_SIZE * 2
+  sub [rect.top], HINT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], Hint3, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  invoke Sleep, 400
+
+
+  sub [rect.bottom], HINT_FONT_SIZE * 2
+  sub [rect.top], HINT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], Hint2, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  invoke Sleep, 400
+
+  sub [rect.bottom], HINT_FONT_SIZE * 2
+  sub [rect.top], HINT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], Hint1, -1, eax, DT_LEFT
+
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  pop [lf.lfHeight]
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
+
+  ret 
+endp
+
 proc PrintStats 
   local rect RECT
 

@@ -180,6 +180,11 @@ section '.data' data readable writeable
   deathMsg db 'Each agent died', 0
   genFieldMsg db 'Generating field...', 0
   
+  HINT_FONT_SIZE = 25
+  Hint1 db '<Space> is used for pause', 0
+  Hint2 db '<n> switches to next tact', 0
+  Hint3 db '<Tab> opens/closes terminal', 0
+  Hint4 db 'Type "hlp" for more info', 0
 
 section '.text' code readable executable
 
@@ -274,6 +279,8 @@ proc start
   stdcall calcFieldOffsets ; inits YFieldOffset and XFieldOffset
   stdcall drawField
   stdcall calcLeftTextOffset
+  stdcall PrintStats
+  stdcall ShowHints
   stdcall startGame
 
 
