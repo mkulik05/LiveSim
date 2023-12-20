@@ -70,34 +70,35 @@ proc ShowHints
   mov [rect.right], eax
   mov eax, [ScreenHeight]
   sub eax, TEXT_MARGIN_TOP
+  sub eax, HINT_FONT_SIZE * 3
   mov [rect.bottom], eax
-  sub eax, HINT_FONT_SIZE * 2
+  sub eax, HINT_FONT_SIZE * 5
   mov [rect.top], eax
 
   lea eax, [rect] 
-  invoke DrawText, [hBufDC], Hint4, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], Hint1, -1, eax, DT_LEFT
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   invoke Sleep, 400
 
-  sub [rect.bottom], HINT_FONT_SIZE * 2
-  sub [rect.top], HINT_FONT_SIZE * 2
-  lea eax, [rect] 
-  invoke DrawText, [hBufDC], Hint3, -1, eax, DT_LEFT
-  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
-  invoke Sleep, 400
-
-
-  sub [rect.bottom], HINT_FONT_SIZE * 2
-  sub [rect.top], HINT_FONT_SIZE * 2
+  add [rect.bottom], HINT_FONT_SIZE * 2
+  add [rect.top], HINT_FONT_SIZE * 2
   lea eax, [rect] 
   invoke DrawText, [hBufDC], Hint2, -1, eax, DT_LEFT
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   invoke Sleep, 400
 
-  sub [rect.bottom], HINT_FONT_SIZE * 2
-  sub [rect.top], HINT_FONT_SIZE * 2
+
+  add [rect.bottom], HINT_FONT_SIZE * 2
+  add [rect.top], HINT_FONT_SIZE * 2
   lea eax, [rect] 
-  invoke DrawText, [hBufDC], Hint1, -1, eax, DT_LEFT
+  invoke DrawText, [hBufDC], Hint3, -1, eax, DT_LEFT
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  invoke Sleep, 400
+
+  add [rect.bottom], HINT_FONT_SIZE * 2
+  add [rect.top], HINT_FONT_SIZE * 2
+  lea eax, [rect] 
+  invoke DrawText, [hBufDC], Hint4, -1, eax, DT_LEFT
 
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   pop [lf.lfHeight]
