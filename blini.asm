@@ -19,7 +19,7 @@ section '.data' data readable writeable
   AMOUNT_OF_SETTINGS = 9
 
   ; field data
-  FieldSize dd 128
+  FieldSize dd 64
   FIELD_CELL_SIZE = 4
   FieldAddr dd ?
   FIELD_AGENT_STATE = 0100_0000_0000_0000_0000_0000_0000_0000b
@@ -141,7 +141,7 @@ section '.data' data readable writeable
   ; if 1 - input is captured by console, otherwise - by main window
   ; toggled by slash 'tab'
   ConsoleInputMode dd 0
-  ConsoleBufSize = 10
+  ConsoleBufSize = 11
   ConsoleInpBuf db (ConsoleBufSize + 1) dup ?
   ConsoleErrorMsg db 'Error', 0
   sdsdsds db 0, 0, 0
@@ -153,8 +153,8 @@ section '.data' data readable writeable
   numStr TCHAR 0, 0, 0, 0, 0, 0, 0, 0, 0
   tactNStr TCHAR 'Tact ', 0
   tactNStrLen = 5
-  agentsNStr TCHAR 'Agents      ', 0
-  agentsNStrLen = 12
+  agentsNStr TCHAR 'Agents    ', 0
+  agentsNStrLen = 10
   foodNStr TCHAR 'Food ', 0
   foodNStrLen = 5
   _class TCHAR 'FASMWIN32', 0

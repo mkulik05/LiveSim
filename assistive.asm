@@ -106,11 +106,10 @@ proc removeVecItem uses esi edi ecx ebp ebx, Addr, PSize, ItemSize, CoordsOffset
   ret
 endp
 
-proc IntToStr uses edx ebx edi esi ecx, num, buf, startBufPos
+proc IntToStr uses edx ebx edi esi ecx, num, buf
     mov ebx, 10
     mov eax, [num]
     mov esi, [buf]
-    add esi, [startBufPos]
 
     xor ecx, ecx
     .ConvertLoop:

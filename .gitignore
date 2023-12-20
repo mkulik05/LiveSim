@@ -6,3 +6,5 @@ main.py
 server*
 *.err
 coolfile*
+Output
+*.iss

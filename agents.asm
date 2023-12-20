@@ -254,7 +254,7 @@ proc AgentClone uses ecx esi edi ebx edx, ind
   add esi, eax
   
   xor ebx, ebx ; amount of possibles directions in stack
-
+  
   ; move clone to TOP
   ; edi will store new agent coords
   mov edi, [esi + AGENT_COORDS_OFFSET]
