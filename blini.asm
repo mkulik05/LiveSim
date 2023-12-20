@@ -185,6 +185,7 @@ section '.data' data readable writeable
   Hint2 db '<n> switches to next tact', 0
   Hint3 db '<Tab> opens/closes terminal', 0
   Hint4 db 'Type "hlp" for more info', 0
+  InitedHint db 0
 
 section '.text' code readable executable
 

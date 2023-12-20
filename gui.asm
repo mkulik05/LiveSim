@@ -77,24 +77,33 @@ proc ShowHints
 
   lea eax, [rect] 
   invoke DrawText, [hBufDC], Hint1, -1, eax, DT_LEFT
+  cmp [InitedHint], 1
+  je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   invoke Sleep, 400
 
+  @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
   add [rect.top], HINT_FONT_SIZE * 2
   lea eax, [rect] 
   invoke DrawText, [hBufDC], Hint2, -1, eax, DT_LEFT
+  cmp [InitedHint], 1
+  je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   invoke Sleep, 400
 
-
+  @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
   add [rect.top], HINT_FONT_SIZE * 2
   lea eax, [rect] 
   invoke DrawText, [hBufDC], Hint3, -1, eax, DT_LEFT
+
+  cmp [InitedHint], 1
+  je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
   invoke Sleep, 400
 
+  @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
   add [rect.top], HINT_FONT_SIZE * 2
   lea eax, [rect] 
@@ -105,6 +114,7 @@ proc ShowHints
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax
 
+  mov [InitedHint], 1
   ret 
 endp
 
