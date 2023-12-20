@@ -217,6 +217,124 @@ proc GetCommandFromHistory
   ret
 endp
 
+proc CommandHelp, n
+  local rect RECT
+  
+  mov [HelpIsActive], 1
+
+  push [lf.lfHeight]
+  mov [lf.lfHeight], HINT_FONT_SIZE
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
+
+  mov [rect.top], 0
+
+  mov eax, [FieldYInOffset]
+  add eax, [FieldZoneHeight]
+  mov [rect.bottom], eax
+
+
+  
+  mov [rect.left], 0
+  mov eax, [FieldXInOffset]
+  add eax, [FieldZoneWidth]
+  mov [rect.right], eax
+  lea eax, [rect]
+  invoke FillRect, [hBufDC], eax, [bkgBrush]
+
+  mov eax, [YFieldOffset] 
+  add eax, HINT_FONT_SIZE * 2
+  mov [rect.bottom], eax
+
+  mov eax, [YFieldOffset]
+  mov [rect.top], eax
+
+  mov eax, [FieldXInOffset]
+  mov [rect.left], eax
+
+  mov ecx, HINTS_COMMANDS_AMOUNT
+  mov esi, commands ; curr text to write
+  
+  .PrintTableLine:
+    push ecx
+    mov eax, [FieldXInOffset]
+    mov [rect.left], eax
+
+    mov eax, [FieldXInOffset]
+    add eax, FIRST_COLUMN_WIDTH
+    mov [rect.right], eax
+
+    lea eax, [rect]
+    invoke DrawText, [hBufDC], esi, -1, eax, DT_LEFT
+
+    .findLastZero:
+      cmp byte[esi], 0
+      je @F 
+      inc esi
+      jmp .findLastZero
+    
+    @@:
+      inc esi
+
+    
+    add [rect.left], FIRST_COLUMN_WIDTH
+    add [rect.right], SECOND_COLUMN_WIDTH
+    lea eax, [rect]
+    invoke DrawText, [hBufDC], esi, -1, eax, DT_LEFT
+    lea eax, [rect]
+    ; invoke FrameRect, [hBufDC], eax, blackBrush
+
+    .findZero:
+      cmp byte[esi], 0
+      je @F 
+      inc esi
+      jmp .findZero
+    
+    @@:
+      inc esi
+
+    add [rect.left], SECOND_COLUMN_WIDTH
+    mov eax, [FieldXInOffset]
+    add eax, [FieldSizePx]
+    mov [rect.right], eax
+    lea eax, [rect]
+    invoke DrawText, [hBufDC], esi, -1, eax, DT_LEFT
+    lea eax, [rect]
+    ; invoke FrameRect, [hBufDC], eax, blackBrush
+    
+    add [rect.top], HINT_FONT_SIZE * 2
+    add [rect.bottom], HINT_FONT_SIZE * 2
+  
+    .findLastLastZero:
+      cmp byte[esi], 0
+      je @F 
+      inc esi
+      jmp .findLastLastZero
+    
+    @@:
+      inc esi
+
+  pop ecx 
+  dec ecx
+  cmp ecx, 0
+  jne .PrintTableLine
+
+  add [rect.top], HINT_FONT_SIZE * 2
+  add [rect.bottom], HINT_FONT_SIZE * 2
+  mov eax, [FieldXInOffset]
+  mov [rect.left], eax
+  lea eax, [rect]
+  invoke DrawText, [hBufDC], ToContinueMsg, -1, eax, DT_CENTER
+
+
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+  pop [lf.lfHeight]
+  invoke CreateFontIndirect, lf
+  invoke SelectObject, [hBufDC], eax
+
+  ret 
+endp
+
 proc CommandChangeFieldSize, n
   mov eax, [n]
   mov [FieldSize], eax

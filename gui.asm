@@ -80,7 +80,7 @@ proc ShowHints
   cmp [InitedHint], 1
   je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
-  invoke Sleep, 400
+  invoke Sleep, 200
 
   @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
@@ -90,7 +90,7 @@ proc ShowHints
   cmp [InitedHint], 1
   je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
-  invoke Sleep, 400
+  invoke Sleep, 200
 
   @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
@@ -101,7 +101,7 @@ proc ShowHints
   cmp [InitedHint], 1
   je @F
   invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
-  invoke Sleep, 400
+  invoke Sleep, 200
 
   @@:
   add [rect.bottom], HINT_FONT_SIZE * 2
@@ -458,6 +458,9 @@ proc GUIBasicInit
   invoke CreateSolidBrush, GAME_BKG_COLOR
   mov [bkgBrush], eax
 
+  invoke CreateSolidBrush, 0
+  mov [blackBrush], eax
+
   ; cursor is like semaphore - twice hidden, twice should be shown
   cmp [isCursorShown], 1
   jne @F
@@ -705,6 +708,22 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
 
 
   .keyDown:
+    cmp [HelpIsActive], 1
+
+    jne @F 
+      ; q
+      cmp [wparam], 0x51
+      jne .full_skip 
+        stdcall ShowHints
+        stdcall calcLeftTextOffset
+        stdcall PrintStats
+        invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+        invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+        mov [HelpIsActive], 0
+      jmp .full_skip
+
+    @@:
+
     cmp [wparam], VK_TAB
     jne @F
 

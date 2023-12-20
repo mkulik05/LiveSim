@@ -113,11 +113,11 @@ section '.data' data readable writeable
   ; dra - draw agent
   ; drf - draw food
   ; drs - draw stop 
-  ConsoleActionCommands db 'cfs', 'rst', 'fsa', 'dra', 'drf', 'drs', 'drc'
-  ConsoleActionNeedParam db 1, 0, 1, 0, 0, 0, 0
+  ConsoleActionCommands db 'cfs', 'rst', 'fsa', 'dra', 'drf', 'drs', 'drc', 'hlp'
+  ConsoleActionNeedParam db 1, 0, 1, 0, 0, 0, 0, 0
   COMMAND_ACTION_LEN = 3
-  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw
-  COMMANDS_ACTION_N = 7
+  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw, CommandHelp
+  COMMANDS_ACTION_N = 8
   IsCommandValid dd 0
   INVALID_COMMAND_COLOR = 0x000000BB
 
@@ -171,6 +171,7 @@ section '.data' data readable writeable
   TEXT_MARGIN_TOP = 20
   GAME_BKG_COLOR = 00FFFFFFh
   bkgBrush dd ?
+  blackBrush dd ?
   lf LOGFONT
   savedMsg db 'saved successfullyu', 0
   fname1 TCHAR 'C:\Users\mk\Documents\blini\ws\coolfile1', 0
@@ -186,6 +187,59 @@ section '.data' data readable writeable
   Hint3 db '<Tab> opens/closes terminal', 0
   Hint4 db 'Type "hlp" for more info', 0
   InitedHint db 0
+  ; ame - agent move energy
+  ; ace - agent clone energy
+  ; amo - agent mutation odds
+  ; fgl - food grow limit
+  ; fgt - food grow time
+  ; tft - time for tact (in ms)
+  ; mce - min clone energy
+  ; fma - food max amount
+  ; fia - food max init amount
+  ; fms - food max spawn amount
+   
+    ; cfs - change field
+  ; fsa - foos spawn amount
+  ; dra - draw agent
+  ; drf - draw food
+  ; drs - draw stop 
+  ; commandsName db 'rst', 0, 'cfs <X>', 0, 'fsa', 0
+  ; commandsNeedParam db 'No', 0, 'Yes', 0, 'Yes', 0
+  ; commandDefinition db 'Restart simulation', 0
+  ;                   db 'Change field size', 0
+  ;                   db 'Change amount of newly spawned food', 0
+  commands db "Command", 0
+           db "Needs param", 0
+           db "Description", 0
+           db "rst", 0
+           db "No", 0
+           db "Restart simulation", 0
+           db "cfs <x>", 0
+           db "Yes", 0
+           db "Change field size", 0
+           db 'fsa <x>', 0
+           db 'Yes', 0
+           db 'Change amount of spawning food', 0
+           db "amo <x>", 0
+           db "Yes", 0
+           db "Agent instruction mutation odds", 0
+           db "dra", 0
+           db "No", 0
+           db "Agent drawing mode", 0
+           db "drf", 0
+           db "No", 0
+           db "Food drawing mode", 0
+           db "drc", 0
+           db "No", 0
+           db "Clear cell drawing mode", 0
+           db "drs", 0
+           db "No", 0
+           db "Exit draw mode. Can't continue simulation while draw is active", 0
+  FIRST_COLUMN_WIDTH = 150
+  SECOND_COLUMN_WIDTH = 150
+  HINTS_COMMANDS_AMOUNT = 9
+  ToContinueMsg db "To close help, press <q>", 0
+  HelpIsActive db 0
 
 section '.text' code readable executable
 
@@ -558,7 +612,8 @@ section '.idata' import data readable writeable
          DispatchMessage, 'DispatchMessageA', \
          DefWindowProc, 'DefWindowProcA', \
          PostQuitMessage, 'PostQuitMessage', \
-         FillRect, 'FillRect'
+         FillRect, 'FillRect', \
+         FrameRect, 'FrameRect'
   import gdi32,\
          CreateSolidBrush, 'CreateSolidBrush',\
          SelectObject, 'SelectObject', \
@@ -568,7 +623,9 @@ section '.idata' import data readable writeable
          BitBlt, 'BitBlt', \
          CreateCompatibleDC, 'CreateCompatibleDC', \
          CreateCompatibleBitmap, 'CreateCompatibleBitmap', \
-         SetTextColor, 'SetTextColor'
+         SetTextColor, 'SetTextColor', \
+         MoveToEx, 'MoveToEx', \
+         LineTo, 'LineTo'
   include 'field.asm'
   include 'agents.asm'
   include 'food.asm'
