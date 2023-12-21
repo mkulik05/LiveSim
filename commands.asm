@@ -219,7 +219,7 @@ endp
 
 proc CommandHelp, n
   local rect RECT
-  
+  mov [PauseGame], 1
   mov [HelpIsActive], 1
 
   push [lf.lfHeight]
@@ -335,10 +335,17 @@ proc CommandHelp, n
   ret 
 endp
 
-proc CommandChangeFieldSize, n
+proc CommandChangeFieldSize uses ebx, n
   mov eax, [n]
-  mov [FieldSize], eax
-
+  mov ebx, [ScreenHeight]
+  sub ebx, 2
+  cmp eax, ebx
+  ja @F
+    mov [FieldSize], eax
+    jmp .continue
+  @@:
+    mov [FieldSize], ebx
+  .continue:
   invoke HeapFree, [HeapHandle], 0, [FieldAddr]
   mov [TotalTacts], 0
   mov [ConsoleCharsN], 0
@@ -351,6 +358,7 @@ proc CommandChangeFieldSize, n
 endp
 
 proc CommandReset, n
+  mov [PauseGame], 1
   mov [TotalTacts], 0
   mov [ConsoleCharsN], 0
   mov [AgentsSize], 0

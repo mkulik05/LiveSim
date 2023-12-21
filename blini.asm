@@ -61,8 +61,8 @@ section '.data' data readable writeable
   FoodAddr dd ?
   NextFoodSpawnN dd ?
   NextFoodSpawnT dd ?
-  NextFoodSpawnTMax dd 40
-  NextFoodSpawnNMax dd 512 * 50
+  NextFoodSpawnTMax dd 30
+  NextFoodSpawnNMax dd 64 * 15
   SpawnedFoodMaxAmount dd 50
 
   ; GUI stuff
@@ -187,27 +187,7 @@ section '.data' data readable writeable
   Hint3 db '<Tab> opens/closes terminal', 0
   Hint4 db 'Type "hlp" for more info', 0
   InitedHint db 0
-  ; ame - agent move energy
-  ; ace - agent clone energy
-  ; amo - agent mutation odds
-  ; fgl - food grow limit
-  ; fgt - food grow time
-  ; tft - time for tact (in ms)
-  ; mce - min clone energy
-  ; fma - food max amount
-  ; fia - food max init amount
-  ; fms - food max spawn amount
-   
-    ; cfs - change field
-  ; fsa - foos spawn amount
-  ; dra - draw agent
-  ; drf - draw food
-  ; drs - draw stop 
-  ; commandsName db 'rst', 0, 'cfs <X>', 0, 'fsa', 0
-  ; commandsNeedParam db 'No', 0, 'Yes', 0, 'Yes', 0
-  ; commandDefinition db 'Restart simulation', 0
-  ;                   db 'Change field size', 0
-  ;                   db 'Change amount of newly spawned food', 0
+
   commands db "Command", 0
            db "Needs param", 0
            db "Description", 0
@@ -223,6 +203,9 @@ section '.data' data readable writeable
            db "amo <x>", 0
            db "Yes", 0
            db "Agent instruction mutation odds", 0
+           db "tft <x>", 0
+           db "Yes", 0
+           db "Time for one tact in millis", 0
            db "dra", 0
            db "No", 0
            db "Agent drawing mode", 0
@@ -237,7 +220,7 @@ section '.data' data readable writeable
            db "Exit draw mode. Can't continue simulation while draw is active", 0
   FIRST_COLUMN_WIDTH = 150
   SECOND_COLUMN_WIDTH = 150
-  HINTS_COMMANDS_AMOUNT = 9
+  HINTS_COMMANDS_AMOUNT = 10
   ToContinueMsg db "To close help, press <q>", 0
   HelpIsActive db 0
 
