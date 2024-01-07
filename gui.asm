@@ -922,6 +922,9 @@ proc WindowProc uses ebx esi edi, hwnd, wmsg, wparam, lparam
     local cellX dd ?
     local cellY dd ?
 
+    cmp [HelpIsActive], 1
+    je .full_skip
+
     ; getting Y, converting to field coords
     mov eax, [lparam]
     shr eax, 16

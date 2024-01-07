@@ -4,7 +4,7 @@ entry EntryPoint
 include 'win32a.inc'
 section '.data' data readable writeable
   ; Game stuff
-  FrameDelayMs dd 0
+  FrameDelayMs dd 1
   MaxWaitTime = 32 ; in ms max time per one sleep, if need more time - splitted into sev sleep (to make app responsible)
   PauseWaitTime = 10 ; ms to pause program for, while waiting for resume
 
@@ -321,9 +321,6 @@ proc start
   stdcall ShowHints
   stdcall startGame
 
-
-  stdcall GameOverProc
-
   ret
 endp
 
@@ -377,6 +374,10 @@ proc GameOverProc
   ; game can be reseted using console
   mov [PauseGame], 1
   .Paused:
+    cmp [AgentsSize], 0
+    jna @F 
+      call startGame
+    @@:
     invoke Sleep, PauseWaitTime 
     stdcall ProcessWindowMsgs
   jmp .Paused
@@ -384,8 +385,8 @@ proc GameOverProc
 endp
 
 proc startGame
-  
-  xor ebp, ebp ; tact counter
+
+  mov ebp, [TotalTacts]
 
   gameLoop:
     stdcall PrintStats  
@@ -554,6 +555,7 @@ proc startGame
     jmp gameLoop
 
   GameOver:
+  stdcall GameOverProc
   ret
 endp
 
