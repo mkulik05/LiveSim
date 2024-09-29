@@ -335,6 +335,51 @@ proc CommandHelp, n
   ret 
 endp
 
+
+proc CommandDrawer uses ecx edi esi ebp, n
+  stdcall ShowMsgOnField, genFoodMsg
+  mov ecx, [AgentsSize]
+  cmp ecx, 0
+  jbe @F
+  mov edi, [AgentsAddr]
+  
+  clearCells:
+
+    mov eax, [edi + AGENT_COORDS_OFFSET]
+    stdcall bufClearCell, eax
+
+    mov esi, [FieldAddr]
+    mov eax, [edi + AGENT_COORDS_OFFSET]
+    shl eax, 2
+    add esi, eax 
+    mov dword[esi], 0 
+
+  add edi, [AgentRecSize]
+  loop clearCells
+
+  mov [AgentsSize], 0
+  @@:
+
+  ; backing it up
+  mov ebp, [NextFoodSpawnN]
+  mov eax, [FieldSize]
+  mul dword [FieldSize]
+  shl eax, 4
+  mov [NextFoodSpawnN], eax
+
+
+  stdcall GenFood
+
+  mov [NextFoodSpawnN], ebp
+  mov [PauseGame], 1
+
+  stdcall PrintStats
+  invoke SetDIBitsToDevice, [hBufDC], [FieldXInOffset], [FieldYInOffset], [FieldZoneWidth], [FieldZoneHeight], 0, 0, 0, [FieldZoneHeight], [ScreenBufAddr], bmi, 0
+  invoke BitBlt, [hMainDc], 0, 0, [ScreenWidth], [ScreenHeight], [hBufDC], 0, 0, SRCCOPY
+
+  ret 
+endp
+
 proc CommandChangeFieldSize uses ebx, n
   mov eax, [n]
   mov ebx, [ScreenHeight]

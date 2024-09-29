@@ -113,11 +113,11 @@ section '.data' data readable writeable
   ; dra - draw agent
   ; drf - draw food
   ; drs - draw stop 
-  ConsoleActionCommands db 'cfs', 'rst', 'fsa', 'dra', 'drf', 'drs', 'drc', 'hlp'
-  ConsoleActionNeedParam db 1, 0, 1, 0, 0, 0, 0, 0
+  ConsoleActionCommands db 'cfs', 'rst', 'fsa', 'dra', 'drf', 'drs', 'drc', 'hlp', 'pnt'
+  ConsoleActionNeedParam db 1, 0, 1, 0, 0, 0, 0, 0, 0
   COMMAND_ACTION_LEN = 3
-  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw, CommandHelp
-  COMMANDS_ACTION_N = 8
+  CommandsActionLabel dd CommandChangeFieldSize, CommandReset, CommandChangeFoodSpawnAmount, CommandAgentDraw, CommandFoodDraw, CommandStopDraw, CommandClearDraw, CommandHelp, CommandDrawer
+  COMMANDS_ACTION_N = 9
   IsCommandValid dd 0
   INVALID_COMMAND_COLOR = 0x000000BB
 
@@ -180,6 +180,7 @@ section '.data' data readable writeable
   deathMsg2 db 'EveryoneEveryoneEveryoneEveryoneEveryone died', 0
   deathMsg db 'Each agent died', 0
   genFieldMsg db 'Generating field...', 0
+  genFoodMsg db 'Generating food...', 0
   
   HINT_FONT_SIZE = 25
   Hint1 db '<Space> is used for pause', 0
@@ -218,9 +219,12 @@ section '.data' data readable writeable
            db "drs", 0
            db "No", 0
            db "Exit draw mode. Can't continue simulation while draw is active", 0
+           db "pnt", 0
+           db "No", 0
+           db "Kill all agents, spawn a lot of food. Use 'dra' to paint on created field", 0
   FIRST_COLUMN_WIDTH = 150
   SECOND_COLUMN_WIDTH = 150
-  HINTS_COMMANDS_AMOUNT = 10
+  HINTS_COMMANDS_AMOUNT = 11
   ToContinueMsg db "To close help, press <q>", 0
   HelpIsActive db 0
 
@@ -290,7 +294,7 @@ endp
 proc EntryPoint
   stdcall Initialisation
   stdcall calcMaxConsoleLines
-  stdcall ShowGeneratingFieldMsg
+  stdcall ShowMsgOnField, genFieldMsg
   stdcall fillField
 
   stdcall RandInt, [NextFoodSpawnTMax]
@@ -324,7 +328,7 @@ proc start
   ret
 endp
 
-proc ShowGeneratingFieldMsg
+proc ShowMsgOnField, msg
   local rect RECT 
   mov [rect.left], 0
   mov eax, [ScreenWidth]
@@ -341,7 +345,7 @@ proc ShowGeneratingFieldMsg
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax
   lea eax, [rect]
-  invoke DrawText, [hBufDC], genFieldMsg, -1, eax, DT_CENTER
+  invoke DrawText, [hBufDC], [msg], -1, eax, DT_CENTER
   pop [lf.lfHeight]
   invoke CreateFontIndirect, lf
   invoke SelectObject, [hBufDC], eax

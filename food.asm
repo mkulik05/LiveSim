@@ -64,6 +64,9 @@ proc GenFood uses ecx ebx esi edi
       mov word[edi + FOOD_GROW_VALUE_OFFSET], 0xFFFF
     @@:
 
+    movzx eax, word[edi + FOOD_AMOUNT_OFFSET]
+    stdcall CalcFoodColor, eax
+    stdcall bufUpdateCellColor, ebx, eax
     jmp .finish
 
     .itIsEmptyCell:
